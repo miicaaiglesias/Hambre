@@ -674,7 +674,7 @@ export default function App() {
                   </div>
                   <div style={{ display:"grid", gridTemplateColumns:"repeat(6, 1fr)", gap:8 }}>
                     {["😎","🤠","👻","🤖","🦁","🐯","🦊","🐸","🐙","🦄","🍔","🌮","🍕","🌭","🍟","🥪","🎩","👑","🎭","🔥","⚡","🌈","💪","🏆","🎯","🎲","🚀","💎","🦸","🥷"].map(e=>(
-                      <button key={e} style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji(e)}>{e}</button>
+                      <div key={e} style={{ background:"#f5f5f5", borderRadius:10, padding:8, fontSize:24, cursor:"pointer", textAlign:"center", userSelect:"none" }} onPointerUp={()=>elegirEmoji(e)}>{e}</div>
                     ))}
                   </div>
                 </div>
