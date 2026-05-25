@@ -241,6 +241,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [loadingInit, setLoadingInit] = useState(true);
   const [puntajeIncompleto, setPuntajeIncompleto] = useState(false);
+  const [comentario, setComentario] = useState("");
   const [showRuleta, setShowRuleta] = useState(false);
   const [ruletaGirando, setRuletaGirando] = useState(false);
   const [ruletaResultado, setRuletaResultado] = useState(null);
@@ -338,11 +339,11 @@ export default function App() {
     try {
       const promedio = calcPromedio(misPuntajes);
       const [hambCreada] = await db("hamburgueserias","POST",{ nombre:nuevaHamb.nombre, fecha:nuevaHamb.fecha, precio:nuevaHamb.precio, notas:nuevaHamb.notas, promedio_global:promedio, jugadores_presentes:[usuario] });
-      await db("puntajes","POST",{ hamburgueseria_id:hambCreada.id, jugador:usuario, ...Object.fromEntries(CRITERIOS.map(c=>[c.id,Number(misPuntajes[c.id])||null])), promedio });
+      await db("puntajes","POST",{ hamburgueseria_id:hambCreada.id, jugador:usuario, ...Object.fromEntries(CRITERIOS.map(c=>[c.id,Number(misPuntajes[c.id])||null])), promedio, comentario });
       const pend = pendientes.find(p=>p.nombre.toLowerCase()===nuevaHamb.nombre.toLowerCase());
       if (pend) await db(`pendientes?id=eq.${pend.id}`,"DELETE");
       setNuevaHamb({ nombre:"", notas:"", precio:"", fecha:new Date().toISOString().split("T")[0] });
-      setMisPuntajes(emptyScores()); setPuntajeIncompleto(false);
+      setMisPuntajes(emptyScores()); setPuntajeIncompleto(false); setComentario("");
       await cargarDatos(); setVista("ranking");
     } catch(e) { console.error(e); }
     setLoading(false);
@@ -354,14 +355,14 @@ export default function App() {
     setLoading(true);
     try {
       const promedio = calcPromedio(misPuntajes);
-      await db("puntajes","POST",{ hamburgueseria_id:hamb.id, jugador:usuario, ...Object.fromEntries(CRITERIOS.map(c=>[c.id,Number(misPuntajes[c.id])||null])), promedio });
+      await db("puntajes","POST",{ hamburgueseria_id:hamb.id, jugador:usuario, ...Object.fromEntries(CRITERIOS.map(c=>[c.id,Number(misPuntajes[c.id])||null])), promedio, comentario });
       const presentes = [...(hamb.jugadores_presentes||[])];
       if (!presentes.includes(usuario)) presentes.push(usuario);
       const todosPuntajes = [...puntajesExistentes.filter(p=>p.hamburgueseria_id===hamb.id),{ promedio }];
       const proms = todosPuntajes.map(p=>Number(p.promedio)).filter(v=>v>0);
       const nuevoGlobal = proms.length?(proms.reduce((a,b)=>a+b,0)/proms.length).toFixed(1):null;
       await db(`hamburgueserias?id=eq.${hamb.id}`,"PATCH",{ jugadores_presentes:presentes, promedio_global:nuevoGlobal });
-      setMisPuntajes(emptyScores()); setPuntajeIncompleto(false); setHambActual(null);
+      setMisPuntajes(emptyScores()); setPuntajeIncompleto(false); setComentario(""); setHambActual(null);
       await cargarDatos();
     } catch(e) { console.error(e); }
     setLoading(false);
@@ -505,8 +506,31 @@ export default function App() {
             </div>
             <p style={s.sectionTitle}>Puntajes por persona</p>
             <div style={s.jugadoresTable}>
-              {getPuntajesHamb(hambActual.id).map(p=>(<div key={p.id} style={s.jugadorRow}><span style={s.jugadorNombre}>👤 {p.jugador}{p.jugador===usuario&&<span style={{ color:ORANGE, fontSize:11 }}> (vos)</span>}</span><div style={{ display:"flex", alignItems:"center", gap:8 }}><FlameBar value={p.promedio} size={12} /><span style={s.jugadorProm}>{p.promedio||"-"}</span></div></div>))}
+              {getPuntajesHamb(hambActual.id).map(p=>(
+                <div key={p.id} style={{ ...s.jugadorRow, flexDirection:"column", alignItems:"flex-start", gap:6 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", width:"100%", alignItems:"center" }}>
+                    <span style={s.jugadorNombre}>
+                      {(() => { const j = jugadores.find(jj=>jj.nombre===p.jugador); return j?.avatar_emoji || "👤"; })()} {p.jugador}{p.jugador===usuario&&<span style={{ color:ORANGE, fontSize:11 }}> (vos)</span>}
+                    </span>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}><FlameBar value={p.promedio} size={12} /><span style={s.jugadorProm}>{p.promedio||"-"}</span></div>
+                  </div>
+                  {p.comentario && <p style={{ margin:0, fontSize:13, color:"#888", fontStyle:"italic", paddingLeft:4 }}>💬 "{p.comentario}"</p>}
+                </div>
+              ))}
             </div>
+            {/* Quién falta votar */}
+            {(() => { const yaVotaron = getPuntajesHamb(hambActual.id).map(p=>p.jugador); const faltan = jugadores.filter(j=>!yaVotaron.includes(j.nombre)); return faltan.length > 0 ? (
+              <div style={{ background:"#fff8f3", border:`2px solid #FFE0CC`, borderRadius:12, padding:"10px 14px", marginBottom:16 }}>
+                <p style={{ margin:"0 0 6px", fontSize:11, letterSpacing:2, color:"#bbb", textTransform:"uppercase", fontWeight:700 }}>⏳ Falta votar</p>
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                  {faltan.map(j=><span key={j.id} style={{ fontSize:13, background:"#f5f5f5", padding:"4px 10px", borderRadius:20, fontWeight:700 }}>{j.avatar_emoji||"👤"} {j.nombre}</span>)}
+                </div>
+              </div>
+            ) : (
+              <div style={{ background:"#e8f8f0", border:"2px solid #2ECC71", borderRadius:12, padding:"10px 14px", marginBottom:16 }}>
+                <p style={{ margin:0, fontSize:13, fontWeight:700, color:"#27ae60" }}>✅ ¡Todos votaron!</p>
+              </div>
+            ); })()}
             {!yaPuntue(hambActual.id) && (
               <div style={s.miPuntajeBox}>
                 <p style={{ ...s.sectionTitle, color:ORANGE, marginBottom:16 }}>⚡ Tu puntaje pendiente</p>
@@ -514,7 +538,11 @@ export default function App() {
                 <div style={s.criteriosGrid}>
                   {CRITERIOS.map(c=>{ const falta=puntajeIncompleto&&!misPuntajes[c.id]; return (<div key={c.id} style={{ ...s.criterioInput, ...(falta?{ background:"#fff0f0", borderRadius:10, padding:8 }:{}) }}><label style={{ ...s.criterioInputLabel, ...(falta?{ color:"#e55" }:{}) }}>{c.emoji} {c.label}{falta&&" ← ¡Falta!"}</label><div style={s.scoreButtons}>{[1,2,3,4,5,6,7,8,9,10].map(n=>{ const sel=Number(misPuntajes[c.id])===n; return <button key={n} style={{ ...s.scoreBtn, ...(sel?s.scoreBtnSel:{}) }} onClick={()=>{ setMisPuntajes(prev=>({...prev,[c.id]:n})); setPuntajeIncompleto(false); }}>{n}</button>; })}</div></div>); })}
                 </div>
-                <button style={{ ...s.btnPrimary, marginTop:16 }} onClick={()=>agregarMiPuntaje(hambActual)} disabled={loading}>{loading?"Guardando...":"Guardar mi puntaje 🔥"}</button>
+                <div style={s.formGroup}>
+                  <label style={s.label}>Tu comentario (opcional)</label>
+                  <input style={s.input} placeholder="Ej: El pan estaba increíble..." value={comentario} onChange={e=>setComentario(e.target.value)} />
+                </div>
+                <button style={{ ...s.btnPrimary, marginTop:8 }} onClick={()=>agregarMiPuntaje(hambActual)} disabled={loading}>{loading?"Guardando...":"Guardar mi puntaje 🔥"}</button>
               </div>
             )}
             <div style={s.promedioBox}><span style={s.promedioLabel}>Promedio global 🔥</span><span style={s.promedioVal}>{hambActual.promedio_global||"-"} / 10</span></div>
@@ -538,7 +566,11 @@ export default function App() {
                 {CRITERIOS.map(c=>{ const falta=puntajeIncompleto&&!misPuntajes[c.id]; return (<div key={c.id} style={{ ...s.criterioInput, ...(falta?{ background:"#fff0f0", borderRadius:10, padding:8 }:{}) }}><label style={{ ...s.criterioInputLabel, ...(falta?{ color:"#e55" }:{}) }}>{c.emoji} {c.label}{falta&&" ← ¡Falta!"}</label><div style={s.scoreButtons}>{[1,2,3,4,5,6,7,8,9,10].map(n=>{ const sel=Number(misPuntajes[c.id])===n; return <button key={n} style={{ ...s.scoreBtn, ...(sel?s.scoreBtnSel:{}) }} onClick={()=>{ setMisPuntajes(prev=>({...prev,[c.id]:n})); setPuntajeIncompleto(false); }}>{n}</button>; })}</div></div>); })}
               </div>
             </div>
-            <button style={{ ...s.btnPrimary, opacity:nuevaHamb.nombre.trim()?1:0.5, marginTop:24 }} onClick={guardarHamb} disabled={loading}>{loading?"Guardando...":"¡Guardar resultado! 🔥"}</button>
+            <div style={s.formGroup}>
+              <label style={s.label}>Tu comentario (opcional)</label>
+              <input style={s.input} placeholder="Ej: El pan estaba increíble, el medallón un poco seco..." value={comentario} onChange={e=>setComentario(e.target.value)} />
+            </div>
+            <button style={{ ...s.btnPrimary, opacity:nuevaHamb.nombre.trim()?1:0.5, marginTop:8 }} onClick={guardarHamb} disabled={loading}>{loading?"Guardando...":"¡Guardar resultado! 🔥"}</button>
           </div>
         )}
 
