@@ -197,7 +197,6 @@ function PopupIntegrante({ jugador, puntajes, hamburgueserias, onCerrar }) {
             <div style={{ width:64, height:64, borderRadius:"50%", background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, margin:"0 auto 8px", display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, color:"#fff" }}>👤</div>
           )}
           <p style={{ margin:0, fontSize:20, fontWeight:800, color:"#222" }}>{jugador.nombre}</p>
-          {jugador.apodo && <p style={{ margin:"4px 0 0", fontSize:13, color:ORANGE, fontWeight:700 }}>{jugador.apodo}</p>}
           {promedio && <p style={{ margin:"8px 0 0", fontSize:13, color:"#aaa" }}>Promedio: <strong style={{ color:ORANGE }}>{promedio}</strong></p>}
         </div>
         <p style={{ ...s.sectionTitle, marginBottom:12 }}>Sus puntajes</p>
@@ -623,14 +622,13 @@ export default function App() {
               <div style={{ display:"flex", alignItems:"center", gap:16 }}>
                 <div style={s.avatarCircle, { background: jugadorActual?.avatar_color ? `linear-gradient(135deg, ${jugadorActual.avatar_color}, ${jugadorActual.avatar_color}cc)` : `linear-gradient(135deg, ${ORANGE}, ${PINK})` }} onClick={()=>setShowEmojiPicker(true)}>
                   {jugadorActual?.avatar_emoji ? (
-                    <span style={{ fontSize:36 }}>{jugadorActual.avatar_emoji}</span>
+                    <span style={{ fontSize:44, lineHeight:1 }}>{jugadorActual.avatar_emoji}</span>
                   ) : (
-                    <span style={{ fontSize:24 }}>😊</span>
+                    <span style={{ fontSize:32, lineHeight:1 }}>😊</span>
                   )}
                 </div>
                 <div>
                   <p style={{ margin:0, fontSize:18, fontWeight:800, color:"#222" }}>{usuario} <span style={{ color:ORANGE }}>(vos)</span></p>
-                  {jugadorActual?.apodo && <p style={{ margin:"2px 0 0", fontSize:13, color:ORANGE, fontWeight:700 }}>{jugadorActual.apodo}</p>}
                   <div style={{ display:"flex", gap:8, marginTop:8, flexWrap:"wrap" }}>
                     <button style={s.btnFoto} onClick={()=>setShowEmojiPicker(true)}>
                       {jugadorActual?.avatar_emoji ? "Cambiar emoji" : "Elegir emoji 😊"}
@@ -812,7 +810,7 @@ const s = {
   codigoValor:{ fontSize:28, fontWeight:800, color:ORANGE, letterSpacing:4, margin:"0 0 6px" },
   codigoTexto:{ fontSize:12, color:"#666", margin:0 },
   miPerfilBox:{ background:"#fff", borderRadius:16, padding:"16px", marginBottom:20, boxShadow:"0 2px 10px rgba(0,0,0,0.06)", border:`2px solid #eee` },
-  avatarCircle:{ width:72, height:72, borderRadius:"50%", background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", position:"relative", flexShrink:0, boxShadow:"0 4px 12px rgba(255,107,43,0.3)" },
+  avatarCircle:{ width:90, height:90, borderRadius:"50%", background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", position:"relative", flexShrink:0, boxShadow:"0 4px 16px rgba(255,107,43,0.35)" },
   avatarCircleSmall:{ width:48, height:48, borderRadius:"50%", background:`linear-gradient(135deg, #f5f5f5, #eee)`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
   btnFoto:{ background:"none", border:`2px solid ${ORANGE}`, borderRadius:8, padding:"5px 12px", fontSize:12, cursor:"pointer", color:ORANGE, fontFamily:"'Manrope',sans-serif", fontWeight:700 },
 };
