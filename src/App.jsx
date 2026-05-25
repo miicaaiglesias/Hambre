@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 
 const SUPABASE_URL = "https://urnsikwpxnqzlhuzzmfc.supabase.co";
 const SUPABASE_KEY = "sb_publishable_wnXbPlE5BqkdiMd25zVeVQ_5EB9tJZW";
-const ANTHROPIC_KEY = "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";
 const ADMINS = ["Mica"];
 const ORANGE = "#FF6B2B", PINK = "#FF4D8D";
 
