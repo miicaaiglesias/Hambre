@@ -19,23 +19,17 @@ const db = async (path, method = "GET", body = null) => {
   return text ? JSON.parse(text) : null;
 };
 
-// Supabase Realtime via WebSocket
 const createRealtimeChannel = (tableName, onEvent) => {
   const wsUrl = `${SUPABASE_URL.replace("https://", "wss://")}/realtime/v1/websocket?apikey=${SUPABASE_KEY}&vsn=1.0.0`;
   const ws = new WebSocket(wsUrl);
   let ref = 1;
-
   ws.onopen = () => {
     ws.send(JSON.stringify({ topic: "realtime:*", event: "phx_join", payload: { config: { broadcast: { self: false }, presence: { key: "" }, postgres_changes: [{ event: "*", schema: "public", table: tableName }] } }, ref: String(ref++) }));
   };
-
   ws.onmessage = (e) => {
     const msg = JSON.parse(e.data);
-    if (msg.event === "postgres_changes" && msg.payload?.data) {
-      onEvent(msg.payload.data);
-    }
+    if (msg.event === "postgres_changes" && msg.payload?.data) onEvent(msg.payload.data);
   };
-
   ws.onerror = () => {};
   return ws;
 };
@@ -66,6 +60,8 @@ const FlameBar = ({ value, size=16 }) => (
 );
 const getMedalla = pos => ["🥇","🥈","🥉"][pos] || `#${pos+1}`;
 const ORANGE="#FF6B2B", PINK="#FF4D8D";
+const ADMINS = ["Mica"];
+const ADMINS = ["Mica"];
 
 // ─── RULETA ────────────────────────────────────────────────────────────────
 function Ruleta({ opciones, onResultado, onCerrar, resultado, girando }) {
@@ -73,7 +69,6 @@ function Ruleta({ opciones, onResultado, onCerrar, resultado, girando }) {
   const [localGirando, setLocalGirando] = useState(false);
   const animRef = useRef(null);
 
-  // Cuando llega resultado sincronizado, animamos localmente
   useEffect(() => {
     if (girando && !localGirando) {
       setLocalGirando(true);
@@ -113,17 +108,13 @@ function Ruleta({ opciones, onResultado, onCerrar, resultado, girando }) {
               <div style={rs.slotOverlayTop} />
               <div style={rs.slotOverlayBot} />
               <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%" }}>
-                {opciones.map((op, i) => (
-                  <div key={i} style={{ ...rs.slotItem, ...(i===idx ? rs.slotItemActive : {}) }}>
-                    {i === idx ? op.nombre : (i === (idx-1+opciones.length)%opciones.length || i === (idx+1)%opciones.length ? op.nombre : "")}
-                  </div>
-                )).filter((_, i) => i === idx || i === (idx-1+opciones.length)%opciones.length || i === (idx+1)%opciones.length)}
+                {opciones.filter((_, i) => i === idx || i === (idx-1+opciones.length)%opciones.length || i === (idx+1)%opciones.length).map((op, i) => (
+                  <div key={i} style={{ ...rs.slotItem, ...(op === opciones[idx] ? rs.slotItemActive : {}) }}>{op.nombre}</div>
+                ))}
               </div>
             </div>
-
             {!resultado ? (
-              <button style={{ ...rs.girarBtn, opacity: localGirando||girando ? 0.6 : 1 }}
-                onClick={onResultado} disabled={localGirando||girando}>
+              <button style={{ ...rs.girarBtn, opacity: localGirando||girando ? 0.6 : 1 }} onClick={onResultado} disabled={localGirando||girando}>
                 {localGirando||girando ? "🎰 Girando..." : "🎰 ¡GIRAR!"}
               </button>
             ) : (
@@ -145,28 +136,138 @@ const rs = {
   overlay:{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:20 },
   modal:{ background:"#1a0a00", border:`3px solid ${ORANGE}`, borderRadius:24, padding:"28px 24px", width:"100%", maxWidth:380, position:"relative", boxShadow:`0 0 60px rgba(255,107,43,0.4)` },
   closeBtn:{ position:"absolute", top:14, right:16, background:"none", border:"none", color:"#666", fontSize:18, cursor:"pointer" },
-  titulo:{ fontFamily:"'Manrope',sans-serif", fontSize:24, color:ORANGE, textAlign:"center", margin:"0 0 20px", letterSpacing:2 },
+  titulo:{ fontFamily:"'Manrope',sans-serif", fontSize:22, fontWeight:800, color:ORANGE, textAlign:"center", margin:"0 0 20px", letterSpacing:1 },
   slotMachine:{ background:"#111", border:`2px solid #333`, borderRadius:16, height:160, overflow:"hidden", position:"relative", marginBottom:20 },
   slotOverlayTop:{ position:"absolute", top:0, left:0, right:0, height:55, background:"linear-gradient(to bottom, #1a0a00, transparent)", zIndex:2, pointerEvents:"none" },
   slotOverlayBot:{ position:"absolute", bottom:0, left:0, right:0, height:55, background:"linear-gradient(to top, #1a0a00, transparent)", zIndex:2, pointerEvents:"none" },
   slotItem:{ width:"100%", textAlign:"center", padding:"12px 20px", fontSize:14, color:"#555", fontFamily:"'Manrope',sans-serif", fontWeight:700, transition:"all 0.08s" },
   slotItemActive:{ fontSize:24, color:"#fff", textShadow:`0 0 20px ${ORANGE}`, background:"rgba(255,107,43,0.08)" },
-  girarBtn:{ width:"100%", padding:"16px", background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, border:"none", borderRadius:14, color:"#fff", fontSize:20, fontWeight:800, cursor:"pointer", fontFamily:"'Manrope',sans-serif", letterSpacing:2, boxShadow:`0 4px 20px rgba(255,107,43,0.5)` },
+  girarBtn:{ width:"100%", padding:"16px", background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, border:"none", borderRadius:14, color:"#fff", fontSize:18, fontWeight:800, cursor:"pointer", fontFamily:"'Manrope',sans-serif", letterSpacing:1, boxShadow:`0 4px 20px rgba(255,107,43,0.5)` },
   resultadoBox:{ textAlign:"center" },
   resultadoLabel:{ color:"#888", fontSize:13, margin:"0 0 4px", textTransform:"uppercase", letterSpacing:2 },
-  resultadoNombre:{ fontFamily:"'Manrope',sans-serif", fontSize:32, color:ORANGE, margin:"0 0 4px", textShadow:`0 0 30px rgba(255,107,43,0.4)` },
+  resultadoNombre:{ fontFamily:"'Manrope',sans-serif", fontSize:28, fontWeight:800, color:ORANGE, margin:"0 0 4px" },
   resultadoBarrio:{ color:"#888", fontSize:13, margin:"0 0 16px" },
   confirmarBtn:{ width:"100%", padding:"14px", background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, border:"none", borderRadius:14, color:"#fff", fontSize:18, fontWeight:800, cursor:"pointer", fontFamily:"'Manrope',sans-serif" },
 };
 
-// ─── APP ────────────────────────────────────────────────────────────────────
+// ─── PANTALLA CÓDIGO ────────────────────────────────────────────────────────
+function PantallaAcceso({ onAcceso }) {
+  const [paso, setPaso] = useState("codigo"); // codigo | nombre | pendiente | rechazado
+  const [codigo, setCodigo] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const verificarCodigo = async () => {
+    if (!codigo.trim()) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await db(`acceso?codigo=eq.${encodeURIComponent(codigo.trim().toUpperCase())}`);
+      if (res && res.length > 0) {
+        setPaso("nombre");
+      } else {
+        setError("Código incorrecto. Pedíselo a alguien del grupo 🍔");
+      }
+    } catch(e) { setError("Error al verificar. Intentá de nuevo."); }
+    setLoading(false);
+  };
+
+  const solicitarAcceso = async () => {
+    if (!nombre.trim()) return;
+    setLoading(true);
+    try {
+      const existe = await db(`jugadores?nombre=eq.${encodeURIComponent(nombre.trim())}`);
+      if (existe && existe.length > 0) {
+        localStorage.setItem("hambre_usuario", nombre.trim());
+        onAcceso(nombre.trim());
+        return;
+      }
+      const yaEspera = await db(`solicitudes?nombre=eq.${encodeURIComponent(nombre.trim())}&estado=eq.pendiente`);
+      if (yaEspera && yaEspera.length > 0) {
+        setPaso("pendiente");
+        return;
+      }
+      const rechazado = await db(`solicitudes?nombre=eq.${encodeURIComponent(nombre.trim())}&estado=eq.rechazado`);
+      if (rechazado && rechazado.length > 0) {
+        setPaso("rechazado");
+        return;
+      }
+      await db("solicitudes", "POST", { nombre: nombre.trim(), estado: "pendiente" });
+      setPaso("pendiente");
+    } catch(e) { setError("Error. Intentá de nuevo."); }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ ...s.root, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"100vh" }}>
+      <style>{fonts}</style>
+      <div style={s.bg} />
+      <div style={{ position:"relative", zIndex:1, textAlign:"center", padding:"0 24px", width:"100%", maxWidth:400 }}>
+        <div style={{ fontSize:72, marginBottom:8 }}>🍔</div>
+        <h1 style={{ ...s.title, fontSize:52, marginBottom:4 }}>HAMBRE</h1>
+        <p style={{ color:"#aaa", marginBottom:32, fontSize:13, letterSpacing:2 }}>el mundial de las hamburgueserías</p>
+
+        {paso === "codigo" && (
+          <>
+            <p style={{ color:"#888", fontSize:14, marginBottom:16 }}>Ingresá el código del grupo para entrar</p>
+            <div style={s.formGroup}>
+              <input style={{ ...s.input, textAlign:"center", fontSize:20, letterSpacing:4, textTransform:"uppercase", fontWeight:700 }}
+                placeholder="HAMBRE-0000"
+                value={codigo} onChange={e => setCodigo(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && verificarCodigo()} />
+            </div>
+            {error && <p style={{ color:"#e55", fontSize:13, marginBottom:12 }}>{error}</p>}
+            <button style={{ ...s.btnPrimary, opacity: codigo.trim() ? 1 : 0.5 }} onClick={verificarCodigo} disabled={loading}>
+              {loading ? "Verificando..." : "Entrar 🔥"}
+            </button>
+          </>
+        )}
+
+        {paso === "nombre" && (
+          <>
+            <p style={{ color:"#888", fontSize:14, marginBottom:16 }}>¡Código correcto! ¿Cómo te llamás?</p>
+            <div style={s.formGroup}>
+              <input style={{ ...s.input, textAlign:"center", fontSize:18 }} placeholder="Tu nombre"
+                value={nombre} onChange={e => setNombre(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && solicitarAcceso()} />
+            </div>
+            {error && <p style={{ color:"#e55", fontSize:13, marginBottom:12 }}>{error}</p>}
+            <button style={{ ...s.btnPrimary, opacity: nombre.trim() ? 1 : 0.5 }} onClick={solicitarAcceso} disabled={loading}>
+              {loading ? "Entrando..." : "¡Unirme al mundial! 🍔"}
+            </button>
+          </>
+        )}
+
+        {paso === "pendiente" && (
+          <div style={{ background:"#fff", borderRadius:20, padding:"32px 24px", boxShadow:"0 4px 20px rgba(0,0,0,0.08)" }}>
+            <div style={{ fontSize:48, marginBottom:12 }}>⏳</div>
+            <p style={{ fontSize:18, fontWeight:800, color:"#333", margin:"0 0 8px" }}>Solicitud enviada</p>
+            <p style={{ fontSize:14, color:"#888" }}>Avisale a alguien del grupo que te acepte. Una vez aprobado, volvé a entrar con tu nombre.</p>
+          </div>
+        )}
+
+        {paso === "rechazado" && (
+          <div style={{ background:"#fff", borderRadius:20, padding:"32px 24px", boxShadow:"0 4px 20px rgba(0,0,0,0.08)" }}>
+            <div style={{ fontSize:48, marginBottom:12 }}>😅</div>
+            <p style={{ fontSize:18, fontWeight:800, color:"#333", margin:"0 0 8px" }}>Acceso denegado</p>
+            <p style={{ fontSize:14, color:"#888" }}>Tu solicitud fue rechazada. Hablá con alguien del grupo.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── APP PRINCIPAL ──────────────────────────────────────────────────────────
 export default function App() {
   const [usuario, setUsuario] = useState(() => localStorage.getItem("hambre_usuario") || "");
-  const [inputNombre, setInputNombre] = useState("");
+  const [aprobado, setAprobado] = useState(false);
   const [jugadores, setJugadores] = useState([]);
   const [hamburgueserias, setHamburgueserias] = useState([]);
   const [pendientes, setPendientes] = useState([]);
   const [puntajesExistentes, setPuntajesExistentes] = useState([]);
+  const [solicitudes, setSolicitudes] = useState([]);
   const [vista, setVista] = useState("ranking");
   const [hambActual, setHambActual] = useState(null);
   const [nuevaHamb, setNuevaHamb] = useState({ nombre:"", notas:"", precio:"", fecha:new Date().toISOString().split("T")[0] });
@@ -176,95 +277,97 @@ export default function App() {
   const [loadingInit, setLoadingInit] = useState(true);
   const [nuevoJugador, setNuevoJugador] = useState("");
   const [puntajeIncompleto, setPuntajeIncompleto] = useState(false);
-
-  // Ruleta sincronizada
   const [showRuleta, setShowRuleta] = useState(false);
   const [ruletaGirando, setRuletaGirando] = useState(false);
   const [ruletaResultado, setRuletaResultado] = useState(null);
   const wsRef = useRef(null);
 
-  useEffect(() => { if (usuario) cargarDatos(); }, [usuario]);
-
-  // Realtime: escuchar sorteos
   useEffect(() => {
-    if (!usuario) return;
+    if (usuario) verificarAprobacion();
+  }, [usuario]);
+
+  const verificarAprobacion = async () => {
+    setLoadingInit(true);
+    try {
+      const existe = await db(`jugadores?nombre=eq.${encodeURIComponent(usuario)}`);
+      if (existe && existe.length > 0) {
+        setAprobado(true);
+        await cargarDatos();
+      } else {
+        const sol = await db(`solicitudes?nombre=eq.${encodeURIComponent(usuario)}&estado=eq.aprobado`);
+        if (sol && sol.length > 0) {
+          await db("jugadores", "POST", { nombre: usuario });
+          setAprobado(true);
+          await cargarDatos();
+        } else {
+          setAprobado(false);
+          setLoadingInit(false);
+        }
+      }
+    } catch(e) { setLoadingInit(false); }
+  };
+
+  useEffect(() => {
+    if (!usuario || !aprobado) return;
     const ws = createRealtimeChannel("sorteos", (data) => {
       if (data.table === "sorteos") {
         const record = data.record || data.new;
         if (!record) return;
-        if (record.estado === "girando") {
-          setRuletaGirando(true);
-          setRuletaResultado(null);
-          setShowRuleta(true);
-        } else if (record.estado === "resultado") {
-          setRuletaGirando(false);
-          setRuletaResultado({ id: record.pendiente_id, nombre: record.nombre, barrio: record.barrio });
-          setShowRuleta(true);
-        }
+        if (record.estado === "girando") { setRuletaGirando(true); setRuletaResultado(null); setShowRuleta(true); }
+        else if (record.estado === "resultado") { setRuletaGirando(false); setRuletaResultado({ id: record.pendiente_id, nombre: record.nombre, barrio: record.barrio }); setShowRuleta(true); }
       }
     });
     wsRef.current = ws;
     return () => ws.close();
-  }, [usuario]);
+  }, [usuario, aprobado]);
 
   const cargarDatos = async () => {
-    setLoadingInit(true);
     try {
-      const [j, h, p, pend] = await Promise.all([
+      const [j, h, p, pend, sol] = await Promise.all([
         db("jugadores?order=created_at.asc"),
         db("hamburgueserias?order=created_at.desc"),
         db("puntajes?select=*"),
         db("pendientes?order=created_at.asc"),
+        db("solicitudes?estado=eq.pendiente&order=created_at.asc"),
       ]);
-      setJugadores(j||[]); setHamburgueserias(h||[]); setPuntajesExistentes(p||[]); setPendientes(pend||[]);
+      setJugadores(j||[]); setHamburgueserias(h||[]); setPuntajesExistentes(p||[]); setPendientes(pend||[]); setSolicitudes(sol||[]);
     } catch(e) { console.error(e); }
     setLoadingInit(false);
   };
 
-  const entrar = async () => {
-    if (!inputNombre.trim()) return;
-    const nombre = inputNombre.trim();
-    setLoading(true);
-    try {
-      const existe = await db(`jugadores?nombre=eq.${encodeURIComponent(nombre)}`);
-      if (!existe || existe.length === 0) await db("jugadores", "POST", { nombre });
-      localStorage.setItem("hambre_usuario", nombre);
-      setUsuario(nombre);
-    } catch(e) { console.error(e); }
-    setLoading(false);
+  const aprobarSolicitud = async (sol) => {
+    await db(`solicitudes?id=eq.${sol.id}`, "PATCH", { estado: "aprobado" });
+    await db("jugadores", "POST", { nombre: sol.nombre });
+    await cargarDatos();
+  };
+
+  const rechazarSolicitud = async (sol) => {
+    await db(`solicitudes?id=eq.${sol.id}`, "PATCH", { estado: "rechazado" });
+    await cargarDatos();
+  };
+
+  const onAcceso = (nombre) => {
+    localStorage.setItem("hambre_usuario", nombre);
+    setUsuario(nombre);
   };
 
   const girarRuleta = async () => {
     if (pendientes.length === 0 || ruletaGirando) return;
-    // Elegir ganador
     const ganador = pendientes[Math.floor(Math.random() * pendientes.length)];
-    // Notificar a todos via sorteos table
     try {
-      // primero señal "girando"
       await db("sorteos", "POST", { estado: "girando", pendiente_id: null, nombre: null, barrio: null });
-      setRuletaGirando(true);
-      setRuletaResultado(null);
-      // esperar animación (~4s) y luego mandar resultado
+      setRuletaGirando(true); setRuletaResultado(null);
       setTimeout(async () => {
         await db("sorteos", "POST", { estado: "resultado", pendiente_id: ganador.id, nombre: ganador.nombre, barrio: ganador.barrio });
-        setRuletaGirando(false);
-        setRuletaResultado(ganador);
+        setRuletaGirando(false); setRuletaResultado(ganador);
       }, 4000);
-    } catch(e) {
-      // fallback local si falla el realtime
-      setRuletaResultado(ganador);
-      setRuletaGirando(false);
-    }
+    } catch(e) { setRuletaResultado(ganador); setRuletaGirando(false); }
   };
 
   const cerrarRuleta = (resultado) => {
     setShowRuleta(false);
-    if (resultado && resultado.nombre) {
-      setNuevaHamb(p => ({ ...p, nombre: resultado.nombre }));
-      setVista("nueva");
-    }
-    setRuletaResultado(null);
-    setRuletaGirando(false);
+    if (resultado && resultado.nombre) { setNuevaHamb(p => ({ ...p, nombre: resultado.nombre })); setVista("nueva"); }
+    setRuletaResultado(null); setRuletaGirando(false);
   };
 
   const guardarHamb = async () => {
@@ -274,15 +377,8 @@ export default function App() {
     setLoading(true);
     try {
       const promedio = calcPromedio(misPuntajes);
-      const [hambCreada] = await db("hamburgueserias", "POST", {
-        nombre: nuevaHamb.nombre, fecha: nuevaHamb.fecha, precio: nuevaHamb.precio,
-        notas: nuevaHamb.notas, promedio_global: promedio, jugadores_presentes: [usuario],
-      });
-      await db("puntajes", "POST", {
-        hamburgueseria_id: hambCreada.id, jugador: usuario,
-        ...Object.fromEntries(CRITERIOS.map(c=>[c.id, Number(misPuntajes[c.id])||null])),
-        promedio,
-      });
+      const [hambCreada] = await db("hamburgueserias", "POST", { nombre: nuevaHamb.nombre, fecha: nuevaHamb.fecha, precio: nuevaHamb.precio, notas: nuevaHamb.notas, promedio_global: promedio, jugadores_presentes: [usuario] });
+      await db("puntajes", "POST", { hamburgueseria_id: hambCreada.id, jugador: usuario, ...Object.fromEntries(CRITERIOS.map(c=>[c.id, Number(misPuntajes[c.id])||null])), promedio });
       const pend = pendientes.find(p => p.nombre.toLowerCase() === nuevaHamb.nombre.toLowerCase());
       if (pend) await db(`pendientes?id=eq.${pend.id}`, "DELETE");
       setNuevaHamb({ nombre:"", notas:"", precio:"", fecha:new Date().toISOString().split("T")[0] });
@@ -298,11 +394,7 @@ export default function App() {
     setLoading(true);
     try {
       const promedio = calcPromedio(misPuntajes);
-      await db("puntajes", "POST", {
-        hamburgueseria_id: hamb.id, jugador: usuario,
-        ...Object.fromEntries(CRITERIOS.map(c=>[c.id, Number(misPuntajes[c.id])||null])),
-        promedio,
-      });
+      await db("puntajes", "POST", { hamburgueseria_id: hamb.id, jugador: usuario, ...Object.fromEntries(CRITERIOS.map(c=>[c.id, Number(misPuntajes[c.id])||null])), promedio });
       const presentes = [...(hamb.jugadores_presentes||[])];
       if (!presentes.includes(usuario)) presentes.push(usuario);
       const todosPuntajes = [...puntajesExistentes.filter(p=>p.hamburgueseria_id===hamb.id), { promedio }];
@@ -323,30 +415,19 @@ export default function App() {
 
   const eliminarPendiente = async (id) => { await db(`pendientes?id=eq.${id}`, "DELETE"); await cargarDatos(); };
 
-  const ranking = [...hamburgueserias].sort((a,b)=>(b.promedio_global||0)-(a.promedio_global||0));
-  const mejor = ranking[0];
-  const getPuntajesHamb = id => puntajesExistentes.filter(p=>p.hamburgueseria_id===id);
-  const yaPuntue = id => puntajesExistentes.some(p=>p.hamburgueseria_id===id && p.jugador===usuario);
-
-  if (!usuario) return (
-    <div style={{ ...s.root, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"100vh" }}>
-      <style>{fonts}</style>
-      <div style={s.bg} />
-      <div style={{ position:"relative", zIndex:1, textAlign:"center", padding:"0 24px", width:"100%", maxWidth:400 }}>
-        <div style={{ fontSize:80, marginBottom:8 }}>🍔</div>
-        <h1 style={{ ...s.title, fontSize:56, marginBottom:4 }}>HAMBRE</h1>
-        <p style={{ color:"#aaa", marginBottom:32, fontSize:14, letterSpacing:2 }}>el mundial de las hamburgueserías</p>
-        <div style={s.formGroup}>
-          <label style={s.label}>¿Cómo te llamás?</label>
-          <input style={{ ...s.input, textAlign:"center", fontSize:18 }} placeholder="Tu nombre"
-            value={inputNombre} onChange={e=>setInputNombre(e.target.value)} onKeyDown={e=>e.key==="Enter"&&entrar()} />
+  // Pantalla de acceso
+  if (!usuario || !aprobado) {
+    if (loadingInit) return (
+      <div style={{ ...s.root, display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh" }}>
+        <style>{fonts}</style><div style={s.bg} />
+        <div style={{ position:"relative", zIndex:1, textAlign:"center" }}>
+          <div style={{ fontSize:48, marginBottom:12 }}>🍔</div>
+          <p style={{ color:"#888" }}>Verificando acceso...</p>
         </div>
-        <button style={{ ...s.btnPrimary, opacity:inputNombre.trim()?1:0.5 }} onClick={entrar} disabled={loading}>
-          {loading?"Entrando...":"¡Entrar al mundial! 🔥"}
-        </button>
       </div>
-    </div>
-  );
+    );
+    return <PantallaAcceso onAcceso={onAcceso} />;
+  }
 
   if (loadingInit) return (
     <div style={{ ...s.root, display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh" }}>
@@ -357,6 +438,11 @@ export default function App() {
       </div>
     </div>
   );
+
+  const ranking = [...hamburgueserias].sort((a,b)=>(b.promedio_global||0)-(a.promedio_global||0));
+  const mejor = ranking[0];
+  const getPuntajesHamb = id => puntajesExistentes.filter(p=>p.hamburgueseria_id===id);
+  const yaPuntue = id => puntajesExistentes.some(p=>p.hamburgueseria_id===id && p.jugador===usuario);
 
   return (
     <div style={s.root}>
@@ -387,7 +473,7 @@ export default function App() {
       </div>
 
       <nav style={s.nav}>
-        {[{id:"ranking",label:"🏆 Ranking"},{id:"nueva",label:"➕ Nueva"},{id:"pendientes",label:"📋 Lista"},{id:"jugadores",label:"👥 Equipo"}].map(item=>(
+        {[{id:"ranking",label:"🏆 Ranking"},{id:"nueva",label:"➕ Nueva"},{id:"pendientes",label:"📋 Lista"},{id:"jugadores",label:"👥 Equipo"}].filter(item => ADMINS.includes(usuario) || item.id !== "pendientes").map(item=>(
           <button key={item.id} style={{ ...s.navBtn, ...(vista===item.id&&!hambActual?s.navBtnActive:{}) }}
             onClick={()=>{ setVista(item.id); setHambActual(null); setMisPuntajes(emptyScores()); setPuntajeIncompleto(false); }}>
             {item.label}
@@ -396,6 +482,24 @@ export default function App() {
       </nav>
 
       <main style={s.main}>
+
+        {/* SOLICITUDES PENDIENTES */}
+        {solicitudes.length > 0 && vista === "jugadores" && ADMINS.includes(usuario) && (
+          <div style={s.solicitudesBox}>
+            <p style={{ ...s.sectionTitle, color:ORANGE }}>🔔 Solicitudes pendientes ({solicitudes.length})</p>
+            {solicitudes.map(sol => (
+              <div key={sol.id} style={s.solicitudRow}>
+                <span style={s.solicitudNombre}>👤 {sol.nombre}</span>
+                <div style={{ display:"flex", gap:8 }}>
+                  <button style={s.btnAceptar} onClick={()=>aprobarSolicitud(sol)}>✅ Aceptar</button>
+                  <button style={s.btnRechazar} onClick={()=>rechazarSolicitud(sol)}>❌ Rechazar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* RANKING */}
         {vista==="ranking" && !hambActual && (
           <div>
             {ranking.length===0 ? (
@@ -431,6 +535,7 @@ export default function App() {
           </div>
         )}
 
+        {/* DETALLE */}
         {vista==="ranking" && hambActual && (
           <div>
             <button style={s.back} onClick={()=>{ setHambActual(null); setMisPuntajes(emptyScores()); setPuntajeIncompleto(false); }}>← Volver</button>
@@ -503,6 +608,7 @@ export default function App() {
           </div>
         )}
 
+        {/* NUEVA */}
         {vista==="nueva" && (
           <div>
             <p style={s.sectionTitle}>Nueva hamburguesería</p>
@@ -551,6 +657,7 @@ export default function App() {
           </div>
         )}
 
+        {/* PENDIENTES */}
         {vista==="pendientes" && (
           <div>
             <p style={s.sectionTitle}>Lista de pendientes</p>
@@ -562,8 +669,7 @@ export default function App() {
             <div style={s.formGroup}>
               <label style={s.label}>Barrio (opcional)</label>
               <input style={s.input} placeholder="Ej: Palermo, Belgrano..." value={nuevaPendiente.barrio}
-                onChange={e=>setNuevaPendiente(p=>({...p,barrio:e.target.value}))}
-                onKeyDown={e=>e.key==="Enter"&&agregarPendiente()} />
+                onChange={e=>setNuevaPendiente(p=>({...p,barrio:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&agregarPendiente()} />
             </div>
             <button style={{ ...s.btnPrimary, opacity:nuevaPendiente.nombre.trim()?1:0.5, marginBottom:24 }} onClick={agregarPendiente}>Agregar a la lista</button>
             <div style={s.cards}>
@@ -582,9 +688,18 @@ export default function App() {
           </div>
         )}
 
+        {/* EQUIPO */}
         {vista==="jugadores" && (
           <div>
             <p style={s.sectionTitle}>El equipo</p>
+
+            {/* Código de acceso */}
+            {ADMINS.includes(usuario) && <div style={s.codigoBox}>
+              <p style={s.codigoLabel}>🔐 Código de acceso</p>
+              <p style={s.codigoValor}>HAMBRE-2025</p>
+              <p style={s.codigoTexto}>Compartí este código con quien quieras sumar al mundial</p>
+            </div>}
+
             <div style={s.jugadoresList}>
               {jugadores.map(j=>(
                 <div key={j.id} style={{ ...s.jugadorChip, ...(j.nombre===usuario?{ border:`2px solid ${ORANGE}`, background:"#fff8f3" }:{}) }}>
@@ -592,29 +707,20 @@ export default function App() {
                 </div>
               ))}
             </div>
-            <div style={s.formGroup}>
-              <label style={s.label}>Agregar integrante</label>
-              <div style={{ display:"flex", gap:8 }}>
-                <input style={{ ...s.input, flex:1 }} placeholder="Nombre" value={nuevoJugador} onChange={e=>setNuevoJugador(e.target.value)} />
-                <button style={{ ...s.btnPrimary, width:"auto", padding:"0 20px" }} onClick={async()=>{
-                  if(!nuevoJugador.trim()||jugadores.find(j=>j.nombre===nuevoJugador.trim())) return;
-                  await db("jugadores","POST",{nombre:nuevoJugador.trim()}); setNuevoJugador(""); await cargarDatos();
-                }}>Agregar</button>
-              </div>
-            </div>
             <button style={{ ...s.btnPrimary, background:"#f5f5f5", color:"#aaa", boxShadow:"none", marginTop:8 }}
-              onClick={()=>{ localStorage.removeItem("hambre_usuario"); setUsuario(""); setInputNombre(""); }}>
+              onClick={()=>{ localStorage.removeItem("hambre_usuario"); setUsuario(""); setAprobado(false); }}>
               Cambiar mi nombre
             </button>
           </div>
         )}
+
       </main>
     </div>
   );
 }
 
 const fonts = `
-  @import url('https://fonts.googleapis.com/css2?family=Boogaloo&family=Manrope:wght@400;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap');
   * { box-sizing: border-box; }
   input { outline: none; }
   button { transition: transform 0.1s; }
@@ -626,13 +732,13 @@ const s = {
   bg:{ position:"fixed", inset:0, zIndex:0, backgroundImage:`radial-gradient(circle at 10% 10%, #FFE8D6 0%, transparent 40%), radial-gradient(circle at 90% 90%, #FFD6E8 0%, transparent 40%)`, pointerEvents:"none" },
   header:{ position:"relative", zIndex:1, background:`linear-gradient(135deg, ${ORANGE} 0%, ${PINK} 100%)`, padding:"20px 20px 14px", textAlign:"center", borderRadius:"0 0 24px 24px", boxShadow:"0 4px 20px rgba(255,107,43,0.35)" },
   headerTop:{ display:"flex", alignItems:"center", justifyContent:"center", gap:12, marginBottom:6 },
-  title:{ margin:0, fontSize:40, fontFamily:"'Manrope',sans-serif", color:"#fff", letterSpacing:4, lineHeight:1, textShadow:"2px 3px 0 rgba(0,0,0,0.15)" },
+  title:{ margin:0, fontSize:40, fontFamily:"'Manrope',sans-serif", fontWeight:800, color:"#fff", letterSpacing:4, lineHeight:1, textShadow:"2px 3px 0 rgba(0,0,0,0.15)" },
   subtitle:{ margin:"2px 0 0", fontSize:11, color:"rgba(255,255,255,0.85)", letterSpacing:2, textTransform:"uppercase" },
   counter:{ margin:"4px 0 0", fontSize:12, color:"rgba(255,255,255,0.8)" },
   mejorBanner:{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:"rgba(255,255,255,0.15)", borderRadius:12, padding:"6px 14px", margin:"8px auto 4px", maxWidth:340, flexWrap:"wrap" },
   mejorLabel:{ fontSize:11, color:"rgba(255,255,255,0.8)" },
   mejorNombre:{ fontSize:14, fontWeight:800, color:"#fff" },
-  mejorPuntaje:{ fontSize:16, fontFamily:"'Manrope',sans-serif", color:"#FFD23F", fontWeight:800 },
+  mejorPuntaje:{ fontSize:16, fontWeight:800, color:"#FFD23F" },
   sorteoBar:{ position:"relative", zIndex:1, padding:"10px 16px", background:"#fff", borderBottom:"1px solid #f0e8e0" },
   sorteoBtn:{ width:"100%", padding:"12px", background:`linear-gradient(135deg, #1a0a00, #2d1500)`, border:`2px solid ${ORANGE}`, borderRadius:12, color:ORANGE, fontSize:15, fontWeight:800, cursor:"pointer", fontFamily:"'Manrope',sans-serif", letterSpacing:1 },
   nav:{ position:"relative", zIndex:1, display:"flex", background:"#fff", boxShadow:"0 2px 12px rgba(0,0,0,0.07)" },
@@ -652,7 +758,7 @@ const s = {
   cardNombre:{ margin:"0 0 4px", fontSize:15, fontWeight:800, color:"#222" },
   cardMeta:{ fontSize:11, color:"#aaa", background:"#f5f5f5", padding:"2px 7px", borderRadius:20 },
   cardScore:{ textAlign:"right" },
-  scoreNum:{ fontSize:24, fontWeight:800, color:ORANGE, fontFamily:"'Manrope',sans-serif" },
+  scoreNum:{ fontSize:24, fontWeight:800, color:ORANGE },
   scoreDen:{ fontSize:11, color:"#bbb", display:"block" },
   back:{ background:"none", border:"none", color:ORANGE, fontSize:14, cursor:"pointer", padding:"0 0 16px", fontFamily:"'Manrope',sans-serif", fontWeight:700 },
   detalleHeader:{ marginBottom:20 },
@@ -662,16 +768,16 @@ const s = {
   detalleGrid:{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:20 },
   criterioCard:{ background:"#fff", borderRadius:14, padding:"12px 8px", display:"flex", flexDirection:"column", alignItems:"center", gap:4, boxShadow:"0 2px 8px rgba(0,0,0,0.06)" },
   criterioLabel:{ fontSize:10, color:"#aaa", textAlign:"center" },
-  criterioVal:{ fontSize:20, fontWeight:800, color:ORANGE, fontFamily:"'Manrope',sans-serif" },
+  criterioVal:{ fontSize:20, fontWeight:800, color:ORANGE },
   sectionTitle:{ fontSize:12, letterSpacing:2, color:"#bbb", textTransform:"uppercase", margin:"0 0 14px", fontWeight:700 },
   jugadoresTable:{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 },
   jugadorRow:{ display:"flex", justifyContent:"space-between", alignItems:"center", background:"#fff", borderRadius:12, padding:"12px 16px", boxShadow:"0 2px 8px rgba(0,0,0,0.05)" },
   jugadorNombre:{ fontSize:15, fontWeight:700 },
-  jugadorProm:{ fontSize:20, fontWeight:800, color:ORANGE, fontFamily:"'Manrope',sans-serif" },
+  jugadorProm:{ fontSize:20, fontWeight:800, color:ORANGE },
   miPuntajeBox:{ background:"#fff8f3", border:`2px solid ${ORANGE}`, borderRadius:16, padding:"16px", marginBottom:16 },
   promedioBox:{ display:"flex", justifyContent:"space-between", alignItems:"center", background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, borderRadius:16, padding:"18px 20px", marginTop:16 },
   promedioLabel:{ fontSize:13, color:"rgba(255,255,255,0.9)", fontWeight:700 },
-  promedioVal:{ fontSize:28, fontWeight:800, color:"#fff", fontFamily:"'Manrope',sans-serif" },
+  promedioVal:{ fontSize:28, fontWeight:800, color:"#fff" },
   alertaIncompleto:{ background:"#fff0f0", border:"2px solid #ffaaaa", borderRadius:12, padding:"12px 16px", fontSize:14, color:"#c00", marginBottom:16 },
   formGroup:{ marginBottom:16 },
   label:{ display:"block", fontSize:11, letterSpacing:2, color:"#bbb", textTransform:"uppercase", marginBottom:8, fontWeight:700 },
@@ -687,4 +793,13 @@ const s = {
   btnPrimary:{ background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, color:"#fff", border:"none", borderRadius:14, padding:"15px 24px", fontSize:16, fontWeight:800, cursor:"pointer", fontFamily:"'Manrope',sans-serif", width:"100%", boxShadow:"0 4px 16px rgba(255,107,43,0.35)" },
   jugadoresList:{ display:"flex", flexDirection:"column", gap:8, marginBottom:20 },
   jugadorChip:{ background:"#fff", borderRadius:12, padding:"13px 16px", fontSize:15, fontWeight:700, boxShadow:"0 2px 8px rgba(0,0,0,0.06)", border:"2px solid transparent" },
+  solicitudesBox:{ background:"#fff8f3", border:`2px solid ${ORANGE}`, borderRadius:16, padding:"16px", marginBottom:20 },
+  solicitudRow:{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 },
+  solicitudNombre:{ fontSize:15, fontWeight:700 },
+  btnAceptar:{ background:"#e8f8f0", border:"2px solid #2ECC71", borderRadius:8, padding:"6px 12px", fontSize:13, cursor:"pointer", fontWeight:700, color:"#27ae60", fontFamily:"'Manrope',sans-serif" },
+  btnRechazar:{ background:"#fff0f0", border:"2px solid #ffaaaa", borderRadius:8, padding:"6px 12px", fontSize:13, cursor:"pointer", fontWeight:700, color:"#e55", fontFamily:"'Manrope',sans-serif" },
+  codigoBox:{ background:`linear-gradient(135deg, #1a0a00, #2d1500)`, border:`2px solid ${ORANGE}`, borderRadius:16, padding:"16px 20px", marginBottom:20, textAlign:"center" },
+  codigoLabel:{ fontSize:11, letterSpacing:2, color:"#a8956a", textTransform:"uppercase", margin:"0 0 8px", fontWeight:700 },
+  codigoValor:{ fontSize:28, fontWeight:800, color:ORANGE, letterSpacing:4, margin:"0 0 6px" },
+  codigoTexto:{ fontSize:12, color:"#666", margin:0 },
 };
