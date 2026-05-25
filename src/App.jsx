@@ -48,17 +48,13 @@ const getMedalla = pos => ["🥇","🥈","🥉"][pos] || `#${pos+1}`;
 
 // ─── TRANSFORMAR FOTO CON IA ─────────────────────────────────────────────
 const transformarFotoConIA = async (base64Image) => {
-  const response = await fetch("/api/transform", {
+  const response = await fetch("/api/generate-avatar", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image: base64Image }),
   });
   const data = await response.json();
-  try {
-    return JSON.parse(data.result.replace(/```json|```/g, "").trim());
-  } catch(e) {
-    return { sombrero: "corona de chef", cara: "bigote de ketchup", detalle: "hamburguesa flotante", emoji_combo: "👑🍔😄🔥", apodo: "El Hambriento" };
-  }
+  return data;
 };
 
 // ─── RULETA ───────────────────────────────────────────────────────────────
@@ -202,7 +198,9 @@ function PopupIntegrante({ jugador, puntajes, hamburgueserias, onCerrar }) {
       <div style={{ ...rs.modal, background:"#fff", border:`3px solid ${ORANGE}`, maxHeight:"80vh", overflowY:"auto" }} onClick={e=>e.stopPropagation()}>
         <button style={{ ...rs.closeBtn, color:"#aaa" }} onClick={onCerrar}>✕</button>
         <div style={{ textAlign:"center", marginBottom:20 }}>
-          {jugador.avatar_emoji ? (
+          {jugador.avatar_url ? (
+            <img src={jugador.avatar_url} style={{ width:80, height:80, borderRadius:"50%", objectFit:"cover", margin:"0 auto 8px", display:"block" }} alt="avatar" />
+          ) : jugador.avatar_emoji ? (
             <div style={{ fontSize:48, marginBottom:8 }}>{jugador.avatar_emoji}</div>
           ) : (
             <div style={{ width:64, height:64, borderRadius:"50%", background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, margin:"0 auto 8px", display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, color:"#fff" }}>👤</div>
@@ -312,11 +310,11 @@ export default function App() {
         const base64 = e.target.result.split(",")[1];
         const resultado = await transformarFotoConIA(base64);
         const jugadorActual = jugadores.find(j => j.nombre === usuario);
-        if (jugadorActual) {
+        if (jugadorActual && resultado.imageUrl) {
           await db(`jugadores?id=eq.${jugadorActual.id}`, "PATCH", {
-            avatar_emoji: resultado.emoji_combo,
-            apodo: resultado.apodo,
-            descripcion_avatar: `${resultado.sombrero} | ${resultado.cara} | ${resultado.detalle}`
+            avatar_url: resultado.imageUrl,
+            apodo: jugadorActual.apodo || "Hamburguer Star",
+            descripcion_avatar: resultado.accesorios || ""
           });
           await cargarDatos();
         }
@@ -596,7 +594,9 @@ export default function App() {
             <div style={s.miPerfilBox}>
               <div style={{ display:"flex", alignItems:"center", gap:16 }}>
                 <div style={s.avatarCircle} onClick={()=>fileInputRef.current?.click()}>
-                  {jugadorActual?.avatar_emoji ? (
+                  {jugadorActual?.avatar_url ? (
+                    <img src={jugadorActual.avatar_url} style={{ width:"100%", height:"100%", borderRadius:"50%", objectFit:"cover" }} alt="avatar" />
+                  ) : jugadorActual?.avatar_emoji ? (
                     <span style={{ fontSize:32 }}>{jugadorActual.avatar_emoji}</span>
                   ) : (
                     <span style={{ fontSize:24 }}>📸</span>
@@ -623,7 +623,13 @@ export default function App() {
                   <div key={j.id} style={s.jugadorChip} onClick={()=>setJugadorSeleccionado(j)}>
                     <div style={{ display:"flex", alignItems:"center", gap:12 }}>
                       <div style={{ ...s.avatarCircleSmall }}>
-                        {j.avatar_emoji ? <span style={{ fontSize:22 }}>{j.avatar_emoji}</span> : <span style={{ fontSize:18 }}>👤</span>}
+                        {j.avatar_url ? (
+                          <img src={j.avatar_url} style={{ width:"100%", height:"100%", borderRadius:"50%", objectFit:"cover" }} alt="avatar" />
+                        ) : j.avatar_emoji ? (
+                          <span style={{ fontSize:22 }}>{j.avatar_emoji}</span>
+                        ) : (
+                          <span style={{ fontSize:18 }}>👤</span>
+                        )}
                       </div>
                       <div>
                         <p style={{ margin:0, fontSize:15, fontWeight:700 }}>{j.nombre}</p>
