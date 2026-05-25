@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   const { image } = req.body;
 
   const sombreros = ["a giant sombrero", "a tiny top hat", "a viking helmet", "a chef hat with a burger on top", "a cowboy hat", "a crown made of french fries", "a backwards cap"];
-  const caras = ["thick groucho marx glasses and mustache", "big clown nose", "monocle and fake mustache", "oversized sunglasses", "one eyebrow raised cartoonishly", "a cigarette behind the ear", "big googly eyes"];
+  const caras = ["thick groucho marx glasses and mustache", "big clown nose", "monocle and fake mustache", "oversized sunglasses", "round harry potter glasses", "a cigarette behind the ear", "big googly eyes"];
   const extras = ["holding a giant burger like a trophy", "with a ketchup bottle in hand", "sitting on a throne of hamburgers", "with a cape made of burger wrappers", "with a tiny burger floating above their head like a halo"];
 
   const sombrero = sombreros[Math.floor(Math.random() * sombreros.length)];
@@ -20,12 +20,12 @@ export default async function handler(req, res) {
     },
     body: JSON.stringify({
       model: "claude-opus-4-5",
-      max_tokens: 300,
+      max_tokens: 200,
       messages: [{
         role: "user",
         content: [
           { type: "image", source: { type: "base64", media_type: "image/jpeg", data: image } },
-          { type: "text", text: "Describe this person in English in 1 sentence: gender, approximate age, hair color and style, skin tone, main facial features. Only the description." }
+          { type: "text", text: "Describe this person in English in 1 short sentence: gender, hair color, approximate age. Only physical description, no names." }
         ]
       }]
     })
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   const claudeData = await claudeRes.json();
   const descripcion = claudeData.content[0].text;
 
-  const prompt = `Funny cartoon caricature sticker of a person: ${descripcion}. They are wearing ${sombrero}, have ${cara}, and are ${extra}. Exaggerated cartoon style, vibrant colors, thick outlines, white background, no text, funny and cheerful expression.`;
+  const prompt = `A fun cartoon caricature character: ${descripcion}. Wearing ${sombrero}, with ${cara}, ${extra}. Colorful cartoon illustration style, thick outlines, expressive and funny, white background, no text, no real person, fully illustrated character.`;
 
   const dalleRes = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
@@ -50,9 +50,9 @@ export default async function handler(req, res) {
     })
   });
   const dalleData = await dalleRes.json();
-  
-  if (!dalleData.data || !dalleData.data[0]) {
-    return res.status(500).json({ error: "No se pudo generar la imagen" });
+
+  if (dalleData.error) {
+    return res.status(500).json({ error: dalleData.error.message });
   }
 
   res.status(200).json({ 
