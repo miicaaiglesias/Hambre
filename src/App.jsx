@@ -412,7 +412,7 @@ export default function App() {
       </div>
 
       <nav style={s.nav}>
-        {[{id:"ranking",label:"🏆 Ranking"},{id:"nueva",label:"➕ Nueva"},{id:"pendientes",label:"📋 Lista"},{id:"jugadores",label:"👥 Equipo"}].filter(item=>ADMINS.includes(usuario)||item.id!=="pendientes").map(item=>(
+        {[{id:"ranking",label:"🏆 Ranking"},{id:"nueva",label:"➕ Nueva"},{id:"stats",label:"📊 Stats"},{id:"pendientes",label:"📋 Lista"},{id:"jugadores",label:"👥 Equipo"}].filter(item=>ADMINS.includes(usuario)||item.id!=="pendientes").map(item=>(
           <button key={item.id} style={{ ...s.navBtn, ...(vista===item.id&&!hambActual?s.navBtnActive:{}) }}
             onClick={()=>{ setVista(item.id); setHambActual(null); setMisPuntajes(emptyScores()); setPuntajeIncompleto(false); }}>
             {item.label}
@@ -592,6 +592,137 @@ export default function App() {
               {pendientes.map(p=>(<div key={p.id} style={{ ...s.card, alignItems:"center" }}><span style={{ fontSize:22 }}>🍔</span><div style={s.cardBody}><p style={{ ...s.cardNombre, margin:0 }}>{p.nombre}</p>{p.barrio&&<p style={{ margin:"4px 0 0", fontSize:12, color:"#aaa" }}>📍 {p.barrio}</p>}</div><button style={{ background:"none", border:"none", color:"#ddd", fontSize:18, cursor:"pointer" }} onClick={()=>eliminarPendiente(p.id)}>✕</button></div>))}
               {pendientes.length===0&&<p style={{ color:"#bbb", textAlign:"center", padding:"32px 0" }}>No hay pendientes</p>}
             </div>
+          </div>
+        )}
+
+
+        {/* STATS */}
+        {vista==="stats" && (
+          <div>
+            <p style={s.sectionTitle}>Estadísticas del mundial</p>
+
+            {hamburgueserias.length === 0 ? (
+              <div style={s.empty}>
+                <div style={{ fontSize:48 }}>📊</div>
+                <p style={s.emptyTitle}>Todavía no hay datos</p>
+                <p style={s.emptyText}>Las estadísticas aparecen cuando visiten la primera hamburguesería.</p>
+              </div>
+            ) : (
+              <>
+                {/* Gráfico de evolución */}
+                <div style={{ background:"#fff", borderRadius:16, padding:"16px", marginBottom:16, boxShadow:"0 2px 10px rgba(0,0,0,0.06)" }}>
+                  <p style={{ ...s.sectionTitle, marginBottom:16 }}>📈 Evolución de puntajes</p>
+                  <div style={{ overflowX:"auto" }}>
+                    <div style={{ minWidth: Math.max(300, ranking.length * 80), height:200, position:"relative", padding:"0 8px" }}>
+                      {/* Y axis lines */}
+                      {[2,4,6,8,10].map(v => (
+                        <div key={v} style={{ position:"absolute", left:0, right:0, top:`${(1 - v/10) * 160}px`, borderTop:"1px dashed #eee", display:"flex", alignItems:"center" }}>
+                          <span style={{ fontSize:10, color:"#ccc", minWidth:16 }}>{v}</span>
+                        </div>
+                      ))}
+                      {/* Bars */}
+                      <div style={{ display:"flex", alignItems:"flex-end", height:160, gap:8, paddingLeft:20 }}>
+                        {[...hamburgueserias].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0)).map((h,i) => (
+                          <div key={h.id} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4, flex:1, minWidth:60 }}>
+                            <span style={{ fontSize:11, fontWeight:800, color:ORANGE }}>{h.promedio_global||"-"}</span>
+                            <div style={{ width:"100%", background:`linear-gradient(to top, ${ORANGE}, ${PINK})`, borderRadius:"6px 6px 0 0", height:`${((h.promedio_global||0)/10)*140}px`, minHeight:4, transition:"height 0.5s" }} />
+                            <span style={{ fontSize:9, color:"#aaa", textAlign:"center", lineHeight:1.2, maxWidth:60, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{h.nombre}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stats por criterio */}
+                <div style={{ background:"#fff", borderRadius:16, padding:"16px", marginBottom:16, boxShadow:"0 2px 10px rgba(0,0,0,0.06)" }}>
+                  <p style={{ ...s.sectionTitle, marginBottom:16 }}>🔍 Promedio por criterio</p>
+                  <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                    {CRITERIOS.map(c => {
+                      const vals = puntajesExistentes.map(p=>Number(p[c.id])).filter(v=>v>0);
+                      const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : "-";
+                      const pct = vals.length ? (Number(avg)/10)*100 : 0;
+                      return (
+                        <div key={c.id}>
+                          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                            <span style={{ fontSize:13, fontWeight:700 }}>{c.emoji} {c.label}</span>
+                            <span style={{ fontSize:13, fontWeight:800, color:ORANGE }}>{avg}</span>
+                          </div>
+                          <div style={{ background:"#f5f5f5", borderRadius:20, height:8, overflow:"hidden" }}>
+                            <div style={{ background:`linear-gradient(to right, ${ORANGE}, ${PINK})`, height:"100%", width:`${pct}%`, borderRadius:20, transition:"width 0.5s" }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Stats por jugador */}
+                <div style={{ background:"#fff", borderRadius:16, padding:"16px", marginBottom:16, boxShadow:"0 2px 10px rgba(0,0,0,0.06)" }}>
+                  <p style={{ ...s.sectionTitle, marginBottom:16 }}>👥 Ranking de jueces</p>
+                  <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                    {jugadores.map(j => {
+                      const susPuntajes = puntajesExistentes.filter(p=>p.jugador===j.nombre);
+                      const proms = susPuntajes.map(p=>Number(p.promedio)).filter(v=>v>0);
+                      const avg = proms.length ? (proms.reduce((a,b)=>a+b,0)/proms.length).toFixed(1) : "-";
+                      const masExigente = CRITERIOS.reduce((best, c) => {
+                        const vals = susPuntajes.map(p=>Number(p[c.id])).filter(v=>v>0);
+                        const cAvg = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 10;
+                        return cAvg < (best.avg||10) ? { id:c.id, label:c.label, emoji:c.emoji, avg:cAvg } : best;
+                      }, {});
+                      return (
+                        <div key={j.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", background:"#f9f9f9", borderRadius:12, padding:"12px 14px" }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                            <div style={{ width:40, height:40, borderRadius:"50%", background:j.avatar_color||`linear-gradient(135deg, ${ORANGE}, ${PINK})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>
+                              {j.avatar_emoji||"👤"}
+                            </div>
+                            <div>
+                              <p style={{ margin:0, fontSize:14, fontWeight:800 }}>{j.nombre}</p>
+                              {masExigente.emoji && <p style={{ margin:0, fontSize:11, color:"#aaa" }}>Más exigente en: {masExigente.emoji} {masExigente.label}</p>}
+                            </div>
+                          </div>
+                          <div style={{ textAlign:"right" }}>
+                            <p style={{ margin:0, fontSize:22, fontWeight:800, color:ORANGE }}>{avg}</p>
+                            <p style={{ margin:0, fontSize:11, color:"#aaa" }}>{proms.length} votos</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Dato curioso */}
+                {(() => {
+                  const mejorH = ranking[0];
+                  const peorH = ranking[ranking.length-1];
+                  const totalVotos = puntajesExistentes.length;
+                  const promedioGeneral = puntajesExistentes.length ? (puntajesExistentes.map(p=>Number(p.promedio)).filter(v=>v>0).reduce((a,b)=>a+b,0)/puntajesExistentes.filter(p=>Number(p.promedio)>0).length).toFixed(1) : "-";
+                  return (
+                    <div style={{ background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, borderRadius:16, padding:"16px 20px", color:"#fff" }}>
+                      <p style={{ ...s.sectionTitle, color:"rgba(255,255,255,0.8)", marginBottom:12 }}>🎯 Resumen del mundial</p>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                        <div style={{ background:"rgba(255,255,255,0.15)", borderRadius:12, padding:"10px 12px" }}>
+                          <p style={{ margin:0, fontSize:11, color:"rgba(255,255,255,0.7)" }}>Promedio general</p>
+                          <p style={{ margin:0, fontSize:24, fontWeight:800 }}>{promedioGeneral}</p>
+                        </div>
+                        <div style={{ background:"rgba(255,255,255,0.15)", borderRadius:12, padding:"10px 12px" }}>
+                          <p style={{ margin:0, fontSize:11, color:"rgba(255,255,255,0.7)" }}>Total de votos</p>
+                          <p style={{ margin:0, fontSize:24, fontWeight:800 }}>{totalVotos}</p>
+                        </div>
+                        {mejorH && <div style={{ background:"rgba(255,255,255,0.15)", borderRadius:12, padding:"10px 12px" }}>
+                          <p style={{ margin:0, fontSize:11, color:"rgba(255,255,255,0.7)" }}>🥇 Mejor</p>
+                          <p style={{ margin:0, fontSize:13, fontWeight:800 }}>{mejorH.nombre}</p>
+                        </div>}
+                        {peorH && peorH.id !== mejorH?.id && <div style={{ background:"rgba(255,255,255,0.15)", borderRadius:12, padding:"10px 12px" }}>
+                          <p style={{ margin:0, fontSize:11, color:"rgba(255,255,255,0.7)" }}>💔 Peor</p>
+                          <p style={{ margin:0, fontSize:13, fontWeight:800 }}>{peorH.nombre}</p>
+                        </div>}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
           </div>
         )}
 
