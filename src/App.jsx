@@ -292,27 +292,13 @@ export default function App() {
     setLoadingInit(false);
   };
 
-  const subirFotoPerfil = async (file) => {
-    if (!file) return;
-    setSubiendoFoto(true);
-    try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const base64 = e.target.result.split(",")[1];
-        const resultado = await transformarFotoConIA(base64);
-        const jugadorActual = jugadores.find(j => j.nombre === usuario);
-        if (jugadorActual && resultado.imageUrl) {
-          await db(`jugadores?id=eq.${jugadorActual.id}`, "PATCH", {
-            avatar_url: resultado.imageUrl,
-            apodo: jugadorActual.apodo || "Hamburguer Star",
-            descripcion_avatar: resultado.accesorios || ""
-          });
-          await cargarDatos();
-        }
-        setSubiendoFoto(false);
-      };
-      reader.readAsDataURL(file);
-    } catch(e) { console.error(e); setSubiendoFoto(false); }
+  const elegirEmoji = async (emoji) => {
+    const jActual = jugadores.find(j => j.nombre === usuario);
+    if (jActual) {
+      await db(`jugadores?id=eq.${jActual.id}`, "PATCH", { avatar_emoji: emoji });
+      await cargarDatos();
+    }
+    setShowEmojiPicker(false);
   };
 
   const aprobarSolicitud = async (sol) => { await db(`solicitudes?id=eq.${sol.id}`, "PATCH", { estado:"aprobado" }); await db("jugadores","POST",{ nombre:sol.nombre }); await cargarDatos(); };
