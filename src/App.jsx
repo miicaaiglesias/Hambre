@@ -332,7 +332,19 @@ export default function App() {
     } catch(e) { setRuletaResultado(ganador); setRuletaGirando(false); }
   };
 
-  const cerrarRuleta = (resultado) => { setShowRuleta(false); if (resultado?.nombre) { setNuevaHamb(p=>({...p,nombre:resultado.nombre})); setVista("nueva"); } setRuletaResultado(null); setRuletaGirando(false); };
+  const cerrarRuleta = (resultado, cuando) => {
+    setShowRuleta(false);
+    if (resultado?.nombre) {
+      const hoy = new Date();
+      const fecha = cuando === "mañana"
+        ? new Date(hoy.setDate(hoy.getDate()+1)).toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0];
+      setNuevaHamb(p=>({...p, nombre:resultado.nombre, fecha}));
+      setVista("nueva");
+    }
+    setRuletaResultado(null);
+    setRuletaGirando(false);
+  };
 
   const guardarHamb = async () => {
     const faltantes = CRITERIOS.filter(c=>!misPuntajes[c.id]);
@@ -689,6 +701,99 @@ export default function App() {
                   </div>
                 </div>
 
+
+                {/* LOGROS */}
+                <div style={{ background:"#fff", borderRadius:16, padding:"16px", marginBottom:16, boxShadow:"0 2px 10px rgba(0,0,0,0.06)" }}>
+                  <p style={{ ...s.sectionTitle, marginBottom:16 }}>🎖️ Logros</p>
+                  {(() => {
+                    const logros = [];
+
+                    // Primer voto
+                    const primerPuntaje = [...puntajesExistentes].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0))[0];
+                    if (primerPuntaje) logros.push({ emoji:"🥇", titulo:"Primer voto", desc:`${primerPuntaje.jugador} fue el primero en puntuar`, jugador: primerPuntaje.jugador });
+
+                    // Más generoso
+                    const promediosPorJugador = jugadores.map(j => {
+                      const pts = puntajesExistentes.filter(p=>p.jugador===j.nombre).map(p=>Number(p.promedio)).filter(v=>v>0);
+                      return { nombre:j.nombre, avg: pts.length ? pts.reduce((a,b)=>a+b,0)/pts.length : 0, emoji: j.avatar_emoji||"👤", color: j.avatar_color };
+                    }).filter(j=>j.avg>0);
+
+                    if (promediosPorJugador.length > 0) {
+                      const masGeneroso = promediosPorJugador.reduce((a,b)=>a.avg>b.avg?a:b);
+                      logros.push({ emoji:"🥰", titulo:"El más generoso", desc:`${masGeneroso.nombre} con promedio ${masGeneroso.avg.toFixed(1)}`, jugador: masGeneroso.nombre });
+
+                      const masEstricto = promediosPorJugador.reduce((a,b)=>a.avg<b.avg?a:b);
+                      logros.push({ emoji:"🧊", titulo:"Crítico de hielo", desc:`${masEstricto.nombre} con promedio ${masEstricto.avg.toFixed(1)}`, jugador: masEstricto.nombre });
+                    }
+
+                    // Más consistente (menor desviación estándar)
+                    const consistencia = jugadores.map(j => {
+                      const pts = puntajesExistentes.filter(p=>p.jugador===j.nombre).map(p=>Number(p.promedio)).filter(v=>v>0);
+                      if (pts.length < 2) return null;
+                      const avg = pts.reduce((a,b)=>a+b,0)/pts.length;
+                      const std = Math.sqrt(pts.map(p=>(p-avg)**2).reduce((a,b)=>a+b,0)/pts.length);
+                      return { nombre:j.nombre, std };
+                    }).filter(Boolean);
+                    if (consistencia.length > 0) {
+                      const masConsistente = consistencia.reduce((a,b)=>a.std<b.std?a:b);
+                      logros.push({ emoji:"🎯", titulo:"El más consistente", desc:`${masConsistente.nombre} siempre puntúa parecido`, jugador: masConsistente.nombre });
+                    }
+
+                    // Más comentarista
+                    const comentarios = jugadores.map(j => ({
+                      nombre: j.nombre,
+                      count: puntajesExistentes.filter(p=>p.jugador===j.nombre&&p.comentario).length
+                    })).filter(j=>j.count>0);
+                    if (comentarios.length > 0) {
+                      const masComentarista = comentarios.reduce((a,b)=>a.count>b.count?a:b);
+                      logros.push({ emoji:"💬", titulo:"El comentarista", desc:`${masComentarista.nombre} dejó ${masComentarista.count} comentario${masComentarista.count>1?"s":""}`, jugador: masComentarista.nombre });
+                    }
+
+                    // Más de acuerdo con el grupo
+                    const acuerdo = jugadores.map(j => {
+                      const misPts = puntajesExistentes.filter(p=>p.jugador===j.nombre);
+                      if (misPts.length === 0) return null;
+                      const diffs = misPts.map(p => {
+                        const hamb = hamburgueserias.find(h=>h.id===p.hamburgueseria_id);
+                        return hamb ? Math.abs(Number(p.promedio) - Number(hamb.promedio_global)) : null;
+                      }).filter(Boolean);
+                      const avgDiff = diffs.length ? diffs.reduce((a,b)=>a+b,0)/diffs.length : 999;
+                      return { nombre:j.nombre, avgDiff };
+                    }).filter(Boolean);
+                    if (acuerdo.length > 0) {
+                      const masAcuerdo = acuerdo.reduce((a,b)=>a.avgDiff<b.avgDiff?a:b);
+                      logros.push({ emoji:"🤝", titulo:"El más de acuerdo", desc:`${masAcuerdo.nombre} casi siempre coincide con el grupo`, jugador: masAcuerdo.nombre });
+                    }
+
+                    // Hamburguesa de oro
+                    if (ranking.length > 0) {
+                      logros.push({ emoji:"🍔", titulo:"Hamburguesa de oro", desc:`${ranking[0].nombre} con ${ranking[0].promedio_global}/10`, jugador: null });
+                    }
+
+                    if (logros.length === 0) return <p style={{ color:"#bbb", textAlign:"center", padding:"20px 0" }}>Los logros aparecen cuando empiecen a puntuar</p>;
+
+                    return (
+                      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                        {logros.map((l,i) => {
+                          const j = l.jugador ? jugadores.find(jj=>jj.nombre===l.jugador) : null;
+                          return (
+                            <div key={i} style={{ display:"flex", alignItems:"center", gap:12, background:"#f9f9f9", borderRadius:12, padding:"12px 14px" }}>
+                              <span style={{ fontSize:28 }}>{l.emoji}</span>
+                              <div style={{ flex:1 }}>
+                                <p style={{ margin:0, fontSize:14, fontWeight:800, color:"#222" }}>{l.titulo}</p>
+                                <p style={{ margin:0, fontSize:12, color:"#888" }}>{l.desc}</p>
+                              </div>
+                              {j && <div style={{ position:"relative", width:36, height:36 }}>
+                                <div style={{ position:"absolute", inset:0, borderRadius:"50%", background:j.avatar_color||`linear-gradient(135deg, ${ORANGE}, ${PINK})` }} />
+                                <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>{j.avatar_emoji||"👤"}</div>
+                              </div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
                 {/* Dato curioso */}
                 {(() => {
                   const mejorH = ranking[0];
