@@ -189,13 +189,10 @@ function PopupIntegrante({ jugador, puntajes, hamburgueserias, onCerrar }) {
       <div style={{ ...rs.modal, background:"#fff", border:`3px solid ${ORANGE}`, maxHeight:"80vh", overflowY:"auto" }} onClick={e=>e.stopPropagation()}>
         <button style={{ ...rs.closeBtn, color:"#aaa" }} onClick={onCerrar}>✕</button>
         <div style={{ textAlign:"center", marginBottom:20 }}>
-          {jugador.avatar_url ? (
-            <img src={jugador.avatar_url} style={{ width:80, height:80, borderRadius:"50%", objectFit:"cover", margin:"0 auto 8px", display:"block" }} alt="avatar" />
-          ) : jugador.avatar_emoji ? (
-            <div style={{ fontSize:48, marginBottom:8 }}>{jugador.avatar_emoji}</div>
-          ) : (
-            <div style={{ width:64, height:64, borderRadius:"50%", background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, margin:"0 auto 8px", display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, color:"#fff" }}>👤</div>
-          )}
+          <div style={{ position:"relative", width:80, height:80, margin:"0 auto 8px" }}>
+            <div style={{ position:"absolute", inset:0, borderRadius:"50%", background: jugador.avatar_color || `linear-gradient(135deg, ${ORANGE}, ${PINK})` }} />
+            <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:40 }}>{jugador.avatar_emoji || "👤"}</div>
+          </div>
           <p style={{ margin:0, fontSize:20, fontWeight:800, color:"#222" }}>{jugador.nombre}</p>
           {promedio && <p style={{ margin:"8px 0 0", fontSize:13, color:"#aaa" }}>Promedio: <strong style={{ color:ORANGE }}>{promedio}</strong></p>}
         </div>
@@ -673,8 +670,9 @@ export default function App() {
                       return (
                         <div key={j.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", background:"#f9f9f9", borderRadius:12, padding:"12px 14px" }}>
                           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                            <div style={{ width:40, height:40, borderRadius:"50%", background:j.avatar_color||`linear-gradient(135deg, ${ORANGE}, ${PINK})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>
-                              {j.avatar_emoji||"👤"}
+                            <div style={{ position:"relative", width:40, height:40 }}>
+                              <div style={{ position:"absolute", inset:0, borderRadius:"50%", background:j.avatar_color||`linear-gradient(135deg, ${ORANGE}, ${PINK})` }} />
+                              <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>{j.avatar_emoji||"👤"}</div>
                             </div>
                             <div>
                               <p style={{ margin:0, fontSize:14, fontWeight:800 }}>{j.nombre}</p>
@@ -783,14 +781,9 @@ export default function App() {
                 return (
                   <div key={j.id} style={s.jugadorChip} onClick={()=>setJugadorSeleccionado(j)}>
                     <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                      <div style={{ ...s.avatarCircleSmall }}>
-                        {j.avatar_url ? (
-                          <img src={j.avatar_url} style={{ width:"100%", height:"100%", borderRadius:"50%", objectFit:"cover" }} alt="avatar" />
-                        ) : j.avatar_emoji ? (
-                          <span style={{ fontSize:22 }}>{j.avatar_emoji}</span>
-                        ) : (
-                          <span style={{ fontSize:18 }}>👤</span>
-                        )}
+                      <div style={{ position:"relative", width:48, height:48, flexShrink:0 }}>
+                        <div style={{ position:"absolute", inset:0, borderRadius:"50%", background: j.avatar_color || `linear-gradient(135deg, ${ORANGE}, ${PINK})`, opacity:0.85 }} />
+                        <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24 }}>{j.avatar_emoji || "👤"}</div>
                       </div>
                       <div>
                         <p style={{ margin:0, fontSize:15, fontWeight:700 }}>{j.nombre}</p>
