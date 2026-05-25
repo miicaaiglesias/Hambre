@@ -941,7 +941,7 @@ const s = {
   codigoValor:{ fontSize:28, fontWeight:800, color:ORANGE, letterSpacing:4, margin:"0 0 6px" },
   codigoTexto:{ fontSize:12, color:"#666", margin:0 },
   miPerfilBox:{ background:"#fff", borderRadius:16, padding:"16px", marginBottom:20, boxShadow:"0 2px 10px rgba(0,0,0,0.06)", border:`2px solid #eee` },
-  avatarCircle:{ width:90, height:90, borderRadius:"50%", background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", position:"relative", flexShrink:0, boxShadow:"0 4px 16px rgba(255,107,43,0.35)" },
+  avatarCircle:{ width:90, height:90, borderRadius:"50%", background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", flexShrink:0, boxShadow:"0 4px 16px rgba(255,107,43,0.35)", overflow:"hidden" },
   avatarCircleSmall:{ width:48, height:48, borderRadius:"50%", background:`linear-gradient(135deg, #f5f5f5, #eee)`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
   btnFoto:{ background:"none", border:`2px solid ${ORANGE}`, borderRadius:8, padding:"5px 12px", fontSize:12, cursor:"pointer", color:ORANGE, fontFamily:"'Manrope',sans-serif", fontWeight:700 },
 };
