@@ -46,15 +46,7 @@ const FlameBar = ({ value, size=16 }) => (<span style={{ display:"inline-flex", 
 const getMedalla = pos => ["🥇","🥈","🥉"][pos] || `#${pos+1}`;
 
 // ─── TRANSFORMAR FOTO CON IA ─────────────────────────────────────────────
-const transformarFotoConIA = async (base64Image) => {
-  const response = await fetch("/api/generate-avatar", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image: base64Image }),
-  });
-  const data = await response.json();
-  return data;
-};
+
 
 // ─── RULETA ───────────────────────────────────────────────────────────────
 function Ruleta({ opciones, onResultado, onCerrar, resultado, girando }) {
@@ -253,8 +245,7 @@ export default function App() {
   const [ruletaGirando, setRuletaGirando] = useState(false);
   const [ruletaResultado, setRuletaResultado] = useState(null);
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null);
-  const [subiendoFoto, setSubiendoFoto] = useState(false);
-  const fileInputRef = useRef(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const wsRef = useRef(null);
 
   useEffect(() => { if (usuario) verificarAprobacion(); }, [usuario]);
@@ -398,7 +389,6 @@ export default function App() {
       <div style={s.bg} />
       {showRuleta && <Ruleta opciones={pendientes} onResultado={girarRuleta} onCerrar={cerrarRuleta} resultado={ruletaResultado} girando={ruletaGirando} />}
       {jugadorSeleccionado && <PopupIntegrante jugador={jugadorSeleccionado} puntajes={puntajesExistentes} hamburgueserias={hamburgueserias} onCerrar={()=>setJugadorSeleccionado(null)} />}
-      <input ref={fileInputRef} type="file" accept="image/*" style={{ display:"none" }} onChange={e=>subirFotoPerfil(e.target.files[0])} />
 
       <header style={s.header}>
         <div style={s.headerTop}>
@@ -592,22 +582,19 @@ export default function App() {
             {/* Mi perfil con foto */}
             <div style={s.miPerfilBox}>
               <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-                <div style={s.avatarCircle} onClick={()=>fileInputRef.current?.click()}>
-                  {jugadorActual?.avatar_url ? (
-                    <img src={jugadorActual.avatar_url} style={{ width:"100%", height:"100%", borderRadius:"50%", objectFit:"cover" }} alt="avatar" />
-                  ) : jugadorActual?.avatar_emoji ? (
-                    <span style={{ fontSize:32 }}>{jugadorActual.avatar_emoji}</span>
+                <div style={s.avatarCircle} onClick={()=>setShowEmojiPicker(true)}>
+                  {jugadorActual?.avatar_emoji ? (
+                    <span style={{ fontSize:36 }}>{jugadorActual.avatar_emoji}</span>
                   ) : (
-                    <span style={{ fontSize:24 }}>📸</span>
+                    <span style={{ fontSize:24 }}>😊</span>
                   )}
-                  {subiendoFoto && <div style={s.avatarLoading}>⏳</div>}
                 </div>
                 <div>
                   <p style={{ margin:0, fontSize:18, fontWeight:800, color:"#222" }}>{usuario} <span style={{ color:ORANGE }}>(vos)</span></p>
                   {jugadorActual?.apodo && <p style={{ margin:"2px 0 0", fontSize:13, color:ORANGE, fontWeight:700 }}>{jugadorActual.apodo}</p>}
                   {jugadorActual?.descripcion_avatar && <p style={{ margin:"4px 0 0", fontSize:11, color:"#aaa" }}>{jugadorActual.descripcion_avatar}</p>}
-                  <button style={{ ...s.btnFoto, marginTop:8 }} onClick={()=>fileInputRef.current?.click()} disabled={subiendoFoto}>
-                    {subiendoFoto ? "🤖 Transformando..." : jugadorActual?.avatar_emoji ? "Cambiar foto" : "📸 Subir foto"}
+                  <button style={{ ...s.btnFoto, marginTop:8 }} onClick={()=>setShowEmojiPicker(true)}>
+                    {jugadorActual?.avatar_emoji ? "Cambiar emoji" : "Elegir emoji 😊"}
                   </button>
                 </div>
               </div>
@@ -644,6 +631,21 @@ export default function App() {
               })}
             </div>
 
+
+            {/* Emoji Picker */}
+            {showEmojiPicker && (
+              <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+                <div style={{ background:"#fff", borderRadius:20, padding:24, width:"100%", maxWidth:340 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+                    <p style={{ margin:0, fontSize:16, fontWeight:800 }}>Elegí tu emoji</p>
+                    <button style={{ background:"none", border:"none", fontSize:20, cursor:"pointer" }} onClick={()=>setShowEmojiPicker(false)}>✕</button>
+                  </div>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(6, 1fr)", gap:8 }}>
+                    <button key="😎" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("😎")}>😎</button> <button key="🤠" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🤠")}>🤠</button> <button key="👻" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("👻")}>👻</button> <button key="🤖" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🤖")}>🤖</button> <button key="🦁" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🦁")}>🦁</button> <button key="🐯" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🐯")}>🐯</button> <button key="🦊" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🦊")}>🦊</button> <button key="🐸" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🐸")}>🐸</button> <button key="🐙" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🐙")}>🐙</button> <button key="🦄" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🦄")}>🦄</button> <button key="🍔" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🍔")}>🍔</button> <button key="🌮" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🌮")}>🌮</button> <button key="🍕" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🍕")}>🍕</button> <button key="🌭" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🌭")}>🌭</button> <button key="🍟" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🍟")}>🍟</button> <button key="🥪" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🥪")}>🥪</button> <button key="🎩" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🎩")}>🎩</button> <button key="👑" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("👑")}>👑</button> <button key="🎭" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🎭")}>🎭</button> <button key="🔥" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🔥")}>🔥</button> <button key="⚡" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("⚡")}>⚡</button> <button key="🌈" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🌈")}>🌈</button> <button key="💪" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("💪")}>💪</button> <button key="🏆" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🏆")}>🏆</button> <button key="🎯" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🎯")}>🎯</button> <button key="🎲" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🎲")}>🎲</button> <button key="🚀" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🚀")}>🚀</button> <button key="💎" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("💎")}>💎</button> <button key="🦸" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🦸")}>🦸</button> <button key="🥷" style={{ background:"#f5f5f5", border:"none", borderRadius:10, padding:8, fontSize:24, cursor:"pointer" }} onClick={()=>elegirEmoji("🥷")}>🥷</button>
+                  </div>
+                </div>
+              </div>
+            )}
             <button style={{ ...s.btnPrimary, background:"#f5f5f5", color:"#aaa", boxShadow:"none", marginTop:8 }}
               onClick={()=>{ localStorage.removeItem("hambre_usuario"); setUsuario(""); setAprobado(false); }}>
               Cambiar mi nombre
@@ -748,6 +750,5 @@ const s = {
   miPerfilBox:{ background:"#fff", borderRadius:16, padding:"16px", marginBottom:20, boxShadow:"0 2px 10px rgba(0,0,0,0.06)", border:`2px solid #eee` },
   avatarCircle:{ width:72, height:72, borderRadius:"50%", background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", position:"relative", flexShrink:0, boxShadow:"0 4px 12px rgba(255,107,43,0.3)" },
   avatarCircleSmall:{ width:48, height:48, borderRadius:"50%", background:`linear-gradient(135deg, #f5f5f5, #eee)`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
-  avatarLoading:{ position:"absolute", inset:0, borderRadius:"50%", background:"rgba(0,0,0,0.5)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 },
   btnFoto:{ background:"none", border:`2px solid ${ORANGE}`, borderRadius:8, padding:"5px 12px", fontSize:12, cursor:"pointer", color:ORANGE, fontFamily:"'Manrope',sans-serif", fontWeight:700 },
 };
