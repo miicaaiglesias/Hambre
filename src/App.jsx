@@ -48,31 +48,14 @@ const getMedalla = pos => ["🥇","🥈","🥉"][pos] || `#${pos+1}`;
 
 // ─── TRANSFORMAR FOTO CON IA ─────────────────────────────────────────────
 const transformarFotoConIA = async (base64Image) => {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch("/api/transform", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_KEY,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify({
-      model: "claude-opus-4-5",
-      max_tokens: 1024,
-      messages: [{
-        role: "user",
-        content: [
-          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64Image } },
-          { type: "text", text: `Mirá esta foto de una persona. Describí de forma MUY divertida y exagerada qué accesorios ridículos y graciosos le agregarías para crear un avatar de hamburguesería. Sé creativo y gracioso. Describí exactamente: 1 sombrero o accesorio en la cabeza, 1 accesorio en la cara, y 1 detalle temático de hamburguesas. Respondé SOLO en este formato JSON exacto sin markdown:
-{"sombrero":"descripción del sombrero","cara":"descripción accesorio cara","detalle":"detalle temático hamburguesa","emoji_combo":"3-4 emojis que lo representen","apodo":"un apodo gracioso de 2-3 palabras"}` }
-        ]
-      }]
-    })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image: base64Image }),
   });
   const data = await response.json();
-  const text = data.content[0].text;
   try {
-    return JSON.parse(text.replace(/```json|```/g, "").trim());
+    return JSON.parse(data.result.replace(/```json|```/g, "").trim());
   } catch(e) {
     return { sombrero: "corona de chef", cara: "bigote de ketchup", detalle: "hamburguesa flotante", emoji_combo: "👑🍔😄🔥", apodo: "El Hambriento" };
   }
