@@ -383,6 +383,32 @@ export default function App() {
     setLoading(false);
   };
 
+
+  const subirFotoPOV = async (hambId, file) => {
+    if (!file) return;
+    try {
+      const ext = file.name.split('.').pop();
+      const filename = `pov_${hambId}_${Date.now()}.${ext}`;
+      const arrayBuffer = await file.arrayBuffer();
+      const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/fotos/${filename}`, {
+        method: "POST",
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": file.type,
+        },
+        body: arrayBuffer,
+      });
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/fotos/${filename}`;
+      // Save URL to puntajes for this user and hamb
+      const miPuntaje = puntajesExistentes.find(p => p.hamburgueseria_id === hambId && p.jugador === usuario);
+      if (miPuntaje) {
+        await db(`puntajes?id=eq.${miPuntaje.id}`, "PATCH", { foto_pov: publicUrl });
+        await cargarDatos();
+      }
+    } catch(e) { console.error(e); }
+  };
   const agregarPendiente = async () => { if (!nuevaPendiente.nombre.trim()) return; await db("pendientes","POST",{ nombre:nuevaPendiente.nombre, barrio:nuevaPendiente.barrio }); setNuevaPendiente({ nombre:"",barrio:"" }); await cargarDatos(); };
   const eliminarPendiente = async (id) => { await db(`pendientes?id=eq.${id}`,"DELETE"); await cargarDatos(); };
 
@@ -421,7 +447,7 @@ export default function App() {
       </div>
 
       <nav style={s.nav}>
-        {[{id:"ranking",label:"🏆 Ranking"},{id:"nueva",label:"➕ Nueva"},{id:"stats",label:"📊 Stats"},{id:"pendientes",label:"📋 Lista"},{id:"jugadores",label:"👥 Equipo"}].filter(item=>ADMINS.includes(usuario)||item.id!=="pendientes").map(item=>(
+        {[{id:"ranking",label:"🏆 Ranking"},{id:"nueva",label:"➕ Nueva"},{id:"stats",label:"📊 Stats"},{id:"mapa",label:"🗺️ Mapa"},{id:"pendientes",label:"📋 Lista"},{id:"jugadores",label:"👥 Equipo"}].filter(item=>ADMINS.includes(usuario)||item.id!=="pendientes").map(item=>(
           <button key={item.id} style={{ ...s.navBtn, ...(vista===item.id&&!hambActual?s.navBtnActive:{}) }}
             onClick={()=>{ setVista(item.id); setHambActual(null); setMisPuntajes(emptyScores()); setPuntajeIncompleto(false); }}>
             {item.label}
@@ -530,6 +556,13 @@ export default function App() {
                     <div style={{ display:"flex", alignItems:"center", gap:8 }}><FlameBar value={p.promedio} size={12} /><span style={s.jugadorProm}>{p.promedio||"-"}</span></div>
                   </div>
                   {p.comentario && <p style={{ margin:0, fontSize:13, color:"#888", fontStyle:"italic", paddingLeft:4 }}>💬 "{p.comentario}"</p>}
+                  {p.foto_pov && <img src={p.foto_pov} style={{ width:"100%", borderRadius:10, marginTop:6, maxHeight:200, objectFit:"cover" }} alt="POV" />}
+                  {p.jugador === usuario && !p.foto_pov && yaPuntue(hambActual.id) && (
+                    <label style={{ display:"inline-block", marginTop:6, cursor:"pointer" }}>
+                      <span style={{ ...s.btnFoto, fontSize:12 }}>📸 Subir mi POV</span>
+                      <input type="file" accept="image/*" style={{ display:"none" }} onChange={e=>subirFotoPOV(hambActual.id, e.target.files[0])} />
+                    </label>
+                  )}
                 </div>
               ))}
             </div>
@@ -604,6 +637,54 @@ export default function App() {
           </div>
         )}
 
+
+
+        {/* MAPA */}
+        {vista==="mapa" && (
+          <div>
+            <p style={s.sectionTitle}>Mapa del mundial</p>
+            <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:20 }}>
+              {hamburgueserias.length > 0 && (
+                <>
+                  <p style={{ fontSize:13, color:"#888", margin:"0 0 8px" }}>Hamburgueserías visitadas</p>
+                  {hamburgueserias.map(h => (
+                    <a key={h.id} href={`https://maps.google.com/?q=${encodeURIComponent(h.nombre + ' hamburgueseria Buenos Aires')}`} target="_blank" rel="noopener noreferrer"
+                      style={{ display:"flex", alignItems:"center", gap:12, background:"#fff", borderRadius:14, padding:"12px 16px", boxShadow:"0 2px 8px rgba(0,0,0,0.06)", textDecoration:"none" }}>
+                      <span style={{ fontSize:24 }}>📍</span>
+                      <div style={{ flex:1 }}>
+                        <p style={{ margin:0, fontSize:15, fontWeight:800, color:"#222" }}>{h.nombre}</p>
+                        <p style={{ margin:0, fontSize:12, color:"#aaa" }}>🔥 {h.promedio_global||"-"}/10</p>
+                      </div>
+                      <span style={{ fontSize:13, color:ORANGE, fontWeight:700 }}>Ver →</span>
+                    </a>
+                  ))}
+                </>
+              )}
+              {pendientes.length > 0 && (
+                <>
+                  <p style={{ fontSize:13, color:"#888", margin:"8px 0 8px" }}>Pendientes</p>
+                  {pendientes.map(p => (
+                    <a key={p.id} href={`https://maps.google.com/?q=${encodeURIComponent(p.nombre + ' hamburgueseria Buenos Aires')}`} target="_blank" rel="noopener noreferrer"
+                      style={{ display:"flex", alignItems:"center", gap:12, background:"#fff", borderRadius:14, padding:"12px 16px", boxShadow:"0 2px 8px rgba(0,0,0,0.06)", textDecoration:"none", opacity:0.7 }}>
+                      <span style={{ fontSize:24 }}>🍔</span>
+                      <div style={{ flex:1 }}>
+                        <p style={{ margin:0, fontSize:15, fontWeight:800, color:"#222" }}>{p.nombre}</p>
+                        {p.barrio && <p style={{ margin:0, fontSize:12, color:"#aaa" }}>📍 {p.barrio}</p>}
+                      </div>
+                      <span style={{ fontSize:13, color:ORANGE, fontWeight:700 }}>Ver →</span>
+                    </a>
+                  ))}
+                </>
+              )}
+              {hamburgueserias.length === 0 && pendientes.length === 0 && (
+                <div style={s.empty}>
+                  <div style={{ fontSize:48 }}>🗺️</div>
+                  <p style={s.emptyTitle}>No hay lugares todavía</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* STATS */}
         {vista==="stats" && (
