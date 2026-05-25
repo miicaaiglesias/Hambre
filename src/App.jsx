@@ -61,7 +61,6 @@ const FlameBar = ({ value, size=16 }) => (
 const getMedalla = pos => ["🥇","🥈","🥉"][pos] || `#${pos+1}`;
 const ORANGE="#FF6B2B", PINK="#FF4D8D";
 const ADMINS = ["Mica"];
-const ADMINS = ["Mica"];
 
 // ─── RULETA ────────────────────────────────────────────────────────────────
 function Ruleta({ opciones, onResultado, onCerrar, resultado, girando }) {
