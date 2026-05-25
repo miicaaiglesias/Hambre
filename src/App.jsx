@@ -149,7 +149,7 @@ const rs = {
   slotMachine:{ background:"#111", border:`2px solid #333`, borderRadius:16, height:160, overflow:"hidden", position:"relative", marginBottom:20 },
   slotOverlayTop:{ position:"absolute", top:0, left:0, right:0, height:55, background:"linear-gradient(to bottom, #1a0a00, transparent)", zIndex:2, pointerEvents:"none" },
   slotOverlayBot:{ position:"absolute", bottom:0, left:0, right:0, height:55, background:"linear-gradient(to top, #1a0a00, transparent)", zIndex:2, pointerEvents:"none" },
-  slotItem:{ width:"100%", textAlign:"center", padding:"12px 20px", fontSize:14, color:"#555", fontFamily:"'Nunito',sans-serif", fontWeight:700, transition:"all 0.08s" },
+  slotItem:{ width:"100%", textAlign:"center", padding:"12px 20px", fontSize:14, color:"#555", fontFamily:"'Manrope',sans-serif", fontWeight:700, transition:"all 0.08s" },
   slotItemActive:{ fontSize:24, color:"#fff", textShadow:`0 0 20px ${ORANGE}`, background:"rgba(255,107,43,0.08)" },
   girarBtn:{ width:"100%", padding:"16px", background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, border:"none", borderRadius:14, color:"#fff", fontSize:20, fontWeight:800, cursor:"pointer", fontFamily:"'Boogaloo',cursive", letterSpacing:2, boxShadow:`0 4px 20px rgba(255,107,43,0.5)` },
   resultadoBox:{ textAlign:"center" },
@@ -614,7 +614,7 @@ export default function App() {
 }
 
 const fonts = `
-  @import url('https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Boogaloo&family=Manrope:wght@400;600;700;800&display=swap');
   * { box-sizing: border-box; }
   input { outline: none; }
   button { transition: transform 0.1s; }
@@ -622,7 +622,7 @@ const fonts = `
 `;
 
 const s = {
-  root:{ minHeight:"100vh", background:"#FFF8F0", fontFamily:"'Nunito',sans-serif", position:"relative", overflowX:"hidden" },
+  root:{ minHeight:"100vh", background:"#FFF8F0", fontFamily:"'Manrope',sans-serif", position:"relative", overflowX:"hidden" },
   bg:{ position:"fixed", inset:0, zIndex:0, backgroundImage:`radial-gradient(circle at 10% 10%, #FFE8D6 0%, transparent 40%), radial-gradient(circle at 90% 90%, #FFD6E8 0%, transparent 40%)`, pointerEvents:"none" },
   header:{ position:"relative", zIndex:1, background:`linear-gradient(135deg, ${ORANGE} 0%, ${PINK} 100%)`, padding:"20px 20px 14px", textAlign:"center", borderRadius:"0 0 24px 24px", boxShadow:"0 4px 20px rgba(255,107,43,0.35)" },
   headerTop:{ display:"flex", alignItems:"center", justifyContent:"center", gap:12, marginBottom:6 },
@@ -636,7 +636,7 @@ const s = {
   sorteoBar:{ position:"relative", zIndex:1, padding:"10px 16px", background:"#fff", borderBottom:"1px solid #f0e8e0" },
   sorteoBtn:{ width:"100%", padding:"12px", background:`linear-gradient(135deg, #1a0a00, #2d1500)`, border:`2px solid ${ORANGE}`, borderRadius:12, color:ORANGE, fontSize:15, fontWeight:800, cursor:"pointer", fontFamily:"'Boogaloo',cursive", letterSpacing:1 },
   nav:{ position:"relative", zIndex:1, display:"flex", background:"#fff", boxShadow:"0 2px 12px rgba(0,0,0,0.07)" },
-  navBtn:{ flex:1, padding:"12px 4px", background:"none", border:"none", color:"#bbb", fontSize:12, cursor:"pointer", fontFamily:"inherit", fontWeight:700, whiteSpace:"nowrap" },
+  navBtn:{ flex:1, padding:"12px 4px", background:"none", border:"none", color:"#bbb", fontSize:12, cursor:"pointer", fontFamily:"'Manrope',sans-serif", fontWeight:700, whiteSpace:"nowrap" },
   navBtnActive:{ color:ORANGE, borderBottom:`3px solid ${ORANGE}`, background:"#fff8f3" },
   main:{ position:"relative", zIndex:1, maxWidth:600, margin:"0 auto", padding:"20px 16px 80px" },
   empty:{ textAlign:"center", padding:"48px 20px" },
@@ -654,7 +654,7 @@ const s = {
   cardScore:{ textAlign:"right" },
   scoreNum:{ fontSize:24, fontWeight:800, color:ORANGE, fontFamily:"'Boogaloo',cursive" },
   scoreDen:{ fontSize:11, color:"#bbb", display:"block" },
-  back:{ background:"none", border:"none", color:ORANGE, fontSize:14, cursor:"pointer", padding:"0 0 16px", fontFamily:"inherit", fontWeight:700 },
+  back:{ background:"none", border:"none", color:ORANGE, fontSize:14, cursor:"pointer", padding:"0 0 16px", fontFamily:"'Manrope',sans-serif", fontWeight:700 },
   detalleHeader:{ marginBottom:20 },
   detalleNombre:{ fontSize:24, fontWeight:800, color:"#222", margin:"0 0 6px" },
   detalleMeta:{ fontSize:12, color:"#aaa", background:"#f5f5f5", padding:"3px 10px", borderRadius:20 },
@@ -675,16 +675,16 @@ const s = {
   alertaIncompleto:{ background:"#fff0f0", border:"2px solid #ffaaaa", borderRadius:12, padding:"12px 16px", fontSize:14, color:"#c00", marginBottom:16 },
   formGroup:{ marginBottom:16 },
   label:{ display:"block", fontSize:11, letterSpacing:2, color:"#bbb", textTransform:"uppercase", marginBottom:8, fontWeight:700 },
-  input:{ width:"100%", background:"#fff", border:"2px solid #eee", borderRadius:12, padding:"12px 14px", color:"#333", fontSize:15, fontFamily:"inherit" },
+  input:{ width:"100%", background:"#fff", border:"2px solid #eee", borderRadius:12, padding:"12px 14px", color:"#333", fontSize:15, fontFamily:"'Manrope',sans-serif" },
   jugadorSection:{ background:"#fff", borderRadius:16, padding:"16px", marginBottom:14, boxShadow:"0 2px 10px rgba(0,0,0,0.06)" },
   jugadorSectionTitle:{ margin:"0 0 14px", fontSize:16, fontWeight:800, color:"#333" },
   criteriosGrid:{ display:"flex", flexDirection:"column", gap:14 },
   criterioInput:{},
   criterioInputLabel:{ fontSize:13, color:"#888", display:"block", marginBottom:8, fontWeight:700 },
   scoreButtons:{ display:"flex", gap:5, flexWrap:"wrap" },
-  scoreBtn:{ width:34, height:34, background:"#f5f5f5", border:"2px solid #eee", borderRadius:8, color:"#888", fontSize:13, cursor:"pointer", fontFamily:"inherit", fontWeight:700 },
+  scoreBtn:{ width:34, height:34, background:"#f5f5f5", border:"2px solid #eee", borderRadius:8, color:"#888", fontSize:13, cursor:"pointer", fontFamily:"'Manrope',sans-serif", fontWeight:700 },
   scoreBtnSel:{ background:ORANGE, border:`2px solid ${ORANGE}`, color:"#fff", transform:"scale(1.15)" },
-  btnPrimary:{ background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, color:"#fff", border:"none", borderRadius:14, padding:"15px 24px", fontSize:16, fontWeight:800, cursor:"pointer", fontFamily:"inherit", width:"100%", boxShadow:"0 4px 16px rgba(255,107,43,0.35)" },
+  btnPrimary:{ background:`linear-gradient(135deg, ${ORANGE}, ${PINK})`, color:"#fff", border:"none", borderRadius:14, padding:"15px 24px", fontSize:16, fontWeight:800, cursor:"pointer", fontFamily:"'Manrope',sans-serif", width:"100%", boxShadow:"0 4px 16px rgba(255,107,43,0.35)" },
   jugadoresList:{ display:"flex", flexDirection:"column", gap:8, marginBottom:20 },
   jugadorChip:{ background:"#fff", borderRadius:12, padding:"13px 16px", fontSize:15, fontWeight:700, boxShadow:"0 2px 8px rgba(0,0,0,0.06)", border:"2px solid transparent" },
 };
