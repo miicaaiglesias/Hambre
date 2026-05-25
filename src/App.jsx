@@ -247,6 +247,8 @@ export default function App() {
   const [ruletaResultado, setRuletaResultado] = useState(null);
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [colorPicker, setColorPicker] = useState(false);
+  const COLORES = ["#FF6B2B","#FF4D8D","#9B59B6","#3498DB","#2ECC71","#F1C40F","#E74C3C","#1ABC9C","#E67E22","#2C3E50"];
   const wsRef = useRef(null);
 
   useEffect(() => { if (usuario) verificarAprobacion(); }, [usuario]);
@@ -299,6 +301,25 @@ export default function App() {
       await cargarDatos();
     }
     setShowEmojiPicker(false);
+  };
+
+  const colorAleatorio = async () => {
+    const colores = ["#FF6B2B","#FF4D8D","#9B59B6","#3498DB","#2ECC71","#F1C40F","#E74C3C","#1ABC9C","#E67E22","#2C3E50"];
+    const color = colores[Math.floor(Math.random() * colores.length)];
+    const jActual = jugadores.find(j => j.nombre === usuario);
+    if (jActual) {
+      await db(`jugadores?id=eq.${jActual.id}`, "PATCH", { avatar_color: color });
+      await cargarDatos();
+    }
+  };
+
+  const elegirColor = async (color) => {
+    const jActual = jugadores.find(j => j.nombre === usuario);
+    if (jActual) {
+      await db(`jugadores?id=eq.${jActual.id}`, "PATCH", { avatar_color: color });
+      await cargarDatos();
+    }
+    setColorPicker(false);
   };
 
   const aprobarSolicitud = async (sol) => { await db(`solicitudes?id=eq.${sol.id}`, "PATCH", { estado:"aprobado" }); await db("jugadores","POST",{ nombre:sol.nombre }); await cargarDatos(); };
@@ -600,7 +621,7 @@ export default function App() {
             {/* Mi perfil con foto */}
             <div style={s.miPerfilBox}>
               <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-                <div style={s.avatarCircle} onClick={()=>setShowEmojiPicker(true)}>
+                <div style={s.avatarCircle, { background: jugadorActual?.avatar_color ? `linear-gradient(135deg, ${jugadorActual.avatar_color}, ${jugadorActual.avatar_color}cc)` : `linear-gradient(135deg, ${ORANGE}, ${PINK})` }} onClick={()=>setShowEmojiPicker(true)}>
                   {jugadorActual?.avatar_emoji ? (
                     <span style={{ fontSize:36 }}>{jugadorActual.avatar_emoji}</span>
                   ) : (
@@ -610,10 +631,17 @@ export default function App() {
                 <div>
                   <p style={{ margin:0, fontSize:18, fontWeight:800, color:"#222" }}>{usuario} <span style={{ color:ORANGE }}>(vos)</span></p>
                   {jugadorActual?.apodo && <p style={{ margin:"2px 0 0", fontSize:13, color:ORANGE, fontWeight:700 }}>{jugadorActual.apodo}</p>}
-                  {jugadorActual?.descripcion_avatar && <p style={{ margin:"4px 0 0", fontSize:11, color:"#aaa" }}>{jugadorActual.descripcion_avatar}</p>}
-                  <button style={{ ...s.btnFoto, marginTop:8 }} onClick={()=>setShowEmojiPicker(true)}>
-                    {jugadorActual?.avatar_emoji ? "Cambiar emoji" : "Elegir emoji 😊"}
-                  </button>
+                  <div style={{ display:"flex", gap:8, marginTop:8, flexWrap:"wrap" }}>
+                    <button style={s.btnFoto} onClick={()=>setShowEmojiPicker(true)}>
+                      {jugadorActual?.avatar_emoji ? "Cambiar emoji" : "Elegir emoji 😊"}
+                    </button>
+                    <button style={{ ...s.btnFoto, borderColor: jugadorActual?.avatar_color || ORANGE }} onClick={()=>setColorPicker(true)}>
+                      🎨 Elegir color
+                    </button>
+                    <button style={{ ...s.btnFoto }} onClick={colorAleatorio}>
+                      🎲 Color random
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -650,6 +678,22 @@ export default function App() {
             </div>
 
 
+            {/* Color Picker */}
+            {colorPicker && (
+              <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+                <div style={{ background:"#fff", borderRadius:20, padding:24, width:"100%", maxWidth:300 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+                    <p style={{ margin:0, fontSize:16, fontWeight:800 }}>Elegí tu color</p>
+                    <button style={{ background:"none", border:"none", fontSize:20, cursor:"pointer" }} onClick={()=>setColorPicker(false)}>✕</button>
+                  </div>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:10 }}>
+                    {["#FF6B2B","#FF4D8D","#9B59B6","#3498DB","#2ECC71","#F1C40F","#E74C3C","#1ABC9C","#E67E22","#2C3E50"].map(c=>(
+                      <div key={c} onPointerUp={()=>elegirColor(c)} style={{ width:"100%", aspectRatio:"1", borderRadius:12, background:c, cursor:"pointer", border: jugadorActual?.avatar_color===c ? "3px solid #222" : "3px solid transparent" }} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Emoji Picker */}
             {showEmojiPicker && (
               <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
