@@ -353,8 +353,28 @@ export default function App() {
     setLoading(true);
     try {
       const promedio = calcPromedio(misPuntajes);
-      const [hambCreada] = await db("hamburgueserias","POST",{ nombre:nuevaHamb.nombre, fecha:nuevaHamb.fecha, precio:nuevaHamb.precio, notas:nuevaHamb.notas, promedio_global:promedio, jugadores_presentes:[usuario] });
-      await db("puntajes","POST",{ hamburgueseria_id:hambCreada.id, jugador:usuario, ...Object.fromEntries(CRITERIOS.map(c=>[c.id,Number(misPuntajes[c.id])||null])), promedio, comentario });
+      // Check if hamburgueseria already exists
+      const existe = hamburgueserias.find(h => h.nombre.toLowerCase() === nuevaHamb.nombre.trim().toLowerCase());
+      let hambId;
+      if (existe) {
+        // Already exists - just add puntaje
+        hambId = existe.id;
+        const presentes = [...(existe.jugadores_presentes||[])];
+        if (!presentes.includes(usuario)) presentes.push(usuario);
+        const todosPuntajes = [...puntajesExistentes.filter(p=>p.hamburgueseria_id===existe.id), { promedio }];
+        const proms = todosPuntajes.map(p=>Number(p.promedio)).filter(v=>v>0);
+        const nuevoGlobal = proms.length ? (proms.reduce((a,b)=>a+b,0)/proms.length).toFixed(1) : null;
+        await db(`hamburgueserias?id=eq.${existe.id}`, "PATCH", { jugadores_presentes:presentes, promedio_global:nuevoGlobal, precio:nuevaHamb.precio||existe.precio, notas:nuevaHamb.notas||existe.notas });
+      } else {
+        // New hamburgueseria
+        const [hambCreada] = await db("hamburgueserias","POST",{ nombre:nuevaHamb.nombre, fecha:nuevaHamb.fecha, precio:nuevaHamb.precio, notas:nuevaHamb.notas, promedio_global:promedio, jugadores_presentes:[usuario] });
+        hambId = hambCreada.id;
+      }
+      // Check if already voted
+      const yaVote = puntajesExistentes.find(p=>p.hamburgueseria_id===hambId && p.jugador===usuario);
+      if (!yaVote) {
+        await db("puntajes","POST",{ hamburgueseria_id:hambId, jugador:usuario, ...Object.fromEntries(CRITERIOS.map(c=>[c.id,Number(misPuntajes[c.id])||null])), promedio, comentario });
+      }
       const pend = pendientes.find(p=>p.nombre.toLowerCase()===nuevaHamb.nombre.toLowerCase());
       if (pend) await db(`pendientes?id=eq.${pend.id}`,"DELETE");
       setNuevaHamb({ nombre:"", notas:"", precio:"", fecha:new Date().toISOString().split("T")[0] });
