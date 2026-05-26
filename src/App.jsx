@@ -247,7 +247,7 @@ export default function App() {
   const COLORES = ["#FF6B2B","#FF4D8D","#9B59B6","#3498DB","#2ECC71","#F1C40F","#E74C3C","#1ABC9C","#E67E22","#2C3E50"];
   const wsRef = useRef(null);
 
-  useEffect(() => { if (usuario) verificarAprobacion(); }, [usuario]);
+  useEffect(() => { if (usuario) verificarAprobacion(); else setLoadingInit(false); }, [usuario]);
 
   const verificarAprobacion = async () => {
     setLoadingInit(true);
