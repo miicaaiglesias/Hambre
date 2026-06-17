@@ -229,6 +229,8 @@ export default function App() {
   const [pendientes, setPendientes] = useState([]);
   const [puntajesExistentes, setPuntajesExistentes] = useState([]);
   const [solicitudes, setSolicitudes] = useState([]);
+  const [propuestas, setPropuestas] = useState([]);
+  const [nuevaPropuesta, setNuevaPropuesta] = useState({ nombre:"", barrio:"" });
   const [vista, setVista] = useState("ranking");
   const [hambActual, setHambActual] = useState(null);
   const [nuevaHamb, setNuevaHamb] = useState({ nombre:"", notas:"", precio:"", fecha:new Date().toISOString().split("T")[0] });
@@ -278,14 +280,15 @@ export default function App() {
 
   const cargarDatos = async () => {
     try {
-      const [j, h, p, pend, sol] = await Promise.all([
+      const [j, h, p, pend, sol, prop] = await Promise.all([
         db("jugadores?order=created_at.asc"),
         db("hamburgueserias?order=created_at.desc"),
         db("puntajes?select=*"),
         db("pendientes?order=created_at.asc"),
         db("solicitudes?estado=eq.pendiente&order=created_at.asc"),
+        db("propuestas?estado=eq.pendiente&order=created_at.asc"),
       ]);
-      setJugadores(j||[]); setHamburgueserias(h||[]); setPuntajesExistentes(p||[]); setPendientes(pend||[]); setSolicitudes(sol||[]);
+      setJugadores(j||[]); setHamburgueserias(h||[]); setPuntajesExistentes(p||[]); setPendientes(pend||[]); setSolicitudes(sol||[]); setPropuestas(prop||[]);
     } catch(e) { console.error(e); }
     setLoadingInit(false);
   };
@@ -316,6 +319,24 @@ export default function App() {
       await cargarDatos();
     }
     setColorPicker(false);
+  };
+
+  const aprobarPropuesta = async (prop) => {
+    await db("pendientes", "POST", { nombre: prop.nombre, barrio: prop.barrio });
+    await db(`propuestas?id=eq.${prop.id}`, "PATCH", { estado: "aprobada" });
+    await cargarDatos();
+  };
+
+  const rechazarPropuesta = async (prop) => {
+    await db(`propuestas?id=eq.${prop.id}`, "PATCH", { estado: "rechazada" });
+    await cargarDatos();
+  };
+
+  const enviarPropuesta = async () => {
+    if (!nuevaPropuesta.nombre.trim()) return;
+    await db("propuestas", "POST", { nombre: nuevaPropuesta.nombre, barrio: nuevaPropuesta.barrio, propuesto_por: usuario });
+    setNuevaPropuesta({ nombre:"", barrio:"" });
+    await cargarDatos();
   };
 
   const aprobarSolicitud = async (sol) => { await db(`solicitudes?id=eq.${sol.id}`, "PATCH", { estado:"aprobado" }); await db("jugadores","POST",{ nombre:sol.nombre }); await cargarDatos(); };
@@ -467,7 +488,7 @@ export default function App() {
       </div>
 
       <nav style={s.nav}>
-        {[{id:"ranking",label:"🏆 Ranking"},{id:"nueva",label:"➕ Nueva"},{id:"stats",label:"📊 Stats"},{id:"mapa",label:"🗺️ Mapa"},{id:"pendientes",label:"📋 Lista"},{id:"jugadores",label:"👥 Equipo"}].filter(item=>ADMINS.includes(usuario)||item.id!=="pendientes").map(item=>(
+        {[{id:"ranking",label:"🏆 Ranking"},{id:"nueva",label:"➕ Nueva"},{id:"stats",label:"📊 Stats"},{id:"mapa",label:"🗺️ Mapa"},{id:"pendientes",label:"📋 Lista"},{id:"jugadores",label:"👥 Equipo"}].map(item=>(
           <button key={item.id} style={{ ...s.navBtn, ...(vista===item.id&&!hambActual?s.navBtnActive:{}) }}
             onClick={()=>{ setVista(item.id); setHambActual(null); setMisPuntajes(emptyScores()); setPuntajeIncompleto(false); }}>
             {item.label}
@@ -642,18 +663,43 @@ export default function App() {
           </div>
         )}
 
-        {/* PENDIENTES - solo admin */}
+        {/* PENDIENTES */}
         {vista==="pendientes" && (
           <div>
-            <p style={s.sectionTitle}>Lista de pendientes</p>
-            <button style={{ ...s.btnPrimary, marginBottom:20, fontSize:15 }} onClick={()=>setShowRuleta(true)}>🎰 Sortear próxima</button>
-            <div style={s.formGroup}><label style={s.label}>Agregar hamburguesería</label><input style={s.input} placeholder="Nombre del local" value={nuevaPendiente.nombre} onChange={e=>setNuevaPendiente(p=>({...p,nombre:e.target.value}))} /></div>
-            <div style={s.formGroup}><label style={s.label}>Barrio (opcional)</label><input style={s.input} placeholder="Ej: Palermo, Belgrano..." value={nuevaPendiente.barrio} onChange={e=>setNuevaPendiente(p=>({...p,barrio:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&agregarPendiente()} /></div>
-            <button style={{ ...s.btnPrimary, opacity:nuevaPendiente.nombre.trim()?1:0.5, marginBottom:24 }} onClick={agregarPendiente}>Agregar a la lista</button>
-            <div style={s.cards}>
-              {pendientes.map(p=>(<div key={p.id} style={{ ...s.card, alignItems:"center" }}><span style={{ fontSize:22 }}>🍔</span><div style={s.cardBody}><p style={{ ...s.cardNombre, margin:0 }}>{p.nombre}</p>{p.barrio&&<p style={{ margin:"4px 0 0", fontSize:12, color:"#aaa" }}>📍 {p.barrio}</p>}</div><button style={{ background:"none", border:"none", color:"#ddd", fontSize:18, cursor:"pointer" }} onClick={()=>eliminarPendiente(p.id)}>✕</button></div>))}
-              {pendientes.length===0&&<p style={{ color:"#bbb", textAlign:"center", padding:"32px 0" }}>No hay pendientes</p>}
-            </div>
+            {ADMINS.includes(usuario) ? (
+              <>
+                <p style={s.sectionTitle}>Lista de pendientes</p>
+                <button style={{ ...s.btnPrimary, marginBottom:20, fontSize:15 }} onClick={()=>setShowRuleta(true)}>🎰 Sortear próxima</button>
+                <div style={s.formGroup}><label style={s.label}>Agregar hamburguesería</label><input style={s.input} placeholder="Nombre del local" value={nuevaPendiente.nombre} onChange={e=>setNuevaPendiente(p=>({...p,nombre:e.target.value}))} /></div>
+                <div style={s.formGroup}><label style={s.label}>Barrio (opcional)</label><input style={s.input} placeholder="Ej: Palermo, Belgrano..." value={nuevaPendiente.barrio} onChange={e=>setNuevaPendiente(p=>({...p,barrio:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&agregarPendiente()} /></div>
+                <button style={{ ...s.btnPrimary, opacity:nuevaPendiente.nombre.trim()?1:0.5, marginBottom:24 }} onClick={agregarPendiente}>Agregar a la lista</button>
+                <div style={s.cards}>
+                  {pendientes.map(p=>(<div key={p.id} style={{ ...s.card, alignItems:"center" }}><span style={{ fontSize:22 }}>🍔</span><div style={s.cardBody}><p style={{ ...s.cardNombre, margin:0 }}>{p.nombre}</p>{p.barrio&&<p style={{ margin:"4px 0 0", fontSize:12, color:"#aaa" }}>📍 {p.barrio}</p>}</div><button style={{ background:"none", border:"none", color:"#ddd", fontSize:18, cursor:"pointer" }} onClick={()=>eliminarPendiente(p.id)}>✕</button></div>))}
+                  {pendientes.length===0&&<p style={{ color:"#bbb", textAlign:"center", padding:"32px 0" }}>No hay pendientes</p>}
+                </div>
+              </>
+            ) : (
+              <>
+                <p style={s.sectionTitle}>Proponer hamburguesería</p>
+                <p style={{ fontSize:13, color:"#aaa", marginBottom:20 }}>Proponé una hamburguesería y Mica la aprueba para sumarla al mundial 🍔</p>
+                <div style={s.formGroup}><label style={s.label}>Nombre del local</label><input style={s.input} placeholder="Ej: La Burguesía..." value={nuevaPropuesta.nombre} onChange={e=>setNuevaPropuesta(p=>({...p,nombre:e.target.value}))} /></div>
+                <div style={s.formGroup}><label style={s.label}>Barrio (opcional)</label><input style={s.input} placeholder="Ej: Palermo, Belgrano..." value={nuevaPropuesta.barrio} onChange={e=>setNuevaPropuesta(p=>({...p,barrio:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&enviarPropuesta()} /></div>
+                <button style={{ ...s.btnPrimary, opacity:nuevaPropuesta.nombre.trim()?1:0.5, marginBottom:24 }} onClick={enviarPropuesta}>Proponer 🍔</button>
+
+                {/* Mis propuestas anteriores */}
+                {(() => {
+                  const misPropuestas = [];
+                  // We'll show from local state what we submitted
+                  return null;
+                })()}
+
+                <p style={s.sectionTitle}>Hamburgueserías pendientes</p>
+                <div style={s.cards}>
+                  {pendientes.map(p=>(<div key={p.id} style={{ ...s.card, alignItems:"center", cursor:"default" }}><span style={{ fontSize:22 }}>🍔</span><div style={s.cardBody}><p style={{ ...s.cardNombre, margin:0 }}>{p.nombre}</p>{p.barrio&&<p style={{ margin:"4px 0 0", fontSize:12, color:"#aaa" }}>📍 {p.barrio}</p>}</div></div>))}
+                  {pendientes.length===0&&<p style={{ color:"#bbb", textAlign:"center", padding:"32px 0" }}>No hay pendientes todavía</p>}
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -938,6 +984,28 @@ export default function App() {
               <div style={s.solicitudesBox}>
                 <p style={{ ...s.sectionTitle, color:ORANGE }}>🔔 Solicitudes pendientes ({solicitudes.length})</p>
                 {solicitudes.map(sol=>(<div key={sol.id} style={s.solicitudRow}><span style={s.solicitudNombre}>👤 {sol.nombre}</span><div style={{ display:"flex", gap:8 }}><button style={s.btnAceptar} onClick={()=>aprobarSolicitud(sol)}>✅ Aceptar</button><button style={s.btnRechazar} onClick={()=>rechazarSolicitud(sol)}>❌ Rechazar</button></div></div>))}
+              </div>
+            )}
+
+            {/* Propuestas pendientes - solo admin */}
+            {ADMINS.includes(usuario) && propuestas.length > 0 && (
+              <div style={{ ...s.solicitudesBox, borderColor:"#9B5DE5", marginBottom:16 }}>
+                <p style={{ ...s.sectionTitle, color:"#9B5DE5" }}>🍔 Hamburgueserías propuestas ({propuestas.length})</p>
+                {propuestas.map(prop=>(
+                  <div key={prop.id} style={{ ...s.solicitudRow, flexDirection:"column", alignItems:"flex-start", gap:8, marginBottom:12 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", width:"100%", alignItems:"center" }}>
+                      <div>
+                        <p style={{ margin:0, fontSize:15, fontWeight:800 }}>🍔 {prop.nombre}</p>
+                        {prop.barrio && <p style={{ margin:0, fontSize:12, color:"#aaa" }}>📍 {prop.barrio}</p>}
+                        <p style={{ margin:0, fontSize:11, color:"#bbb" }}>Propuesta por {prop.propuesto_por}</p>
+                      </div>
+                      <div style={{ display:"flex", gap:8 }}>
+                        <button style={s.btnAceptar} onClick={()=>aprobarPropuesta(prop)}>✅</button>
+                        <button style={s.btnRechazar} onClick={()=>rechazarPropuesta(prop)}>❌</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
